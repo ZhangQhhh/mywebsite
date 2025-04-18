@@ -1,0 +1,25 @@
+ # 维护模式配置
+    location / {
+        # 返回503状态码（服务不可用）
+        return 503;
+    }
+
+    # 定义503错误页面为维护页面
+    error_page 503 /maintenance.html;
+    
+    # 确保维护页面本身可以被访问
+    location = /maintenance.html {
+        root /maintenance/maintenance.html;  # 指向包含maintenance.html的目录
+        internal;  # 可选，防止直接访问
+    }
+
+    # 允许访问静态资源（如CSS、JS、图片等）
+    location ~* \.(css|js|jpg|jpeg|png|gif|ico)$ {
+        root /path/to/your/static/files;
+        expires max;
+        add_header Cache-Control "public, max-age=31536000";
+    }
+
+
+
+

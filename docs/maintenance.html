@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网站维护中 - 研究星球</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #f8f9fc;
+            --accent-color: #2e59d9;
+            --text-color: #5a5c69;
+        }
+
+        body {
+            font-family: 'Nunito', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .maintenance-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            overflow: hidden;
+        }
+
+        .maintenance-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--accent-color) 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .maintenance-header h1 {
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .maintenance-body {
+            padding: 30px;
+        }
+
+        .maintenance-icon {
+            font-size: 4rem;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+        }
+
+        .countdown-container {
+            background-color: rgba(78, 115, 223, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .countdown-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+
+        .countdown-timer {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .countdown-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 80px;
+        }
+
+        .countdown-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            background-color: white;
+            border-radius: 8px;
+            padding: 10px 15px;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            width: 100%;
+            text-align: center;
+        }
+
+        .countdown-label {
+            font-size: 0.9rem;
+            margin-top: 5px;
+            color: var(--text-color);
+        }
+
+        .feature-list {
+            margin: 25px 0;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .feature-icon {
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .feature-text {
+            flex-grow: 1;
+        }
+
+        .feature-text h3 {
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .social-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .social-link:hover {
+            background-color: var(--accent-color);
+            transform: translateY(-3px);
+        }
+
+        .maintenance-footer {
+            text-align: center;
+            padding: 20px;
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+            color: #858796;
+        }
+
+        @media (max-width: 768px) {
+            .countdown-timer {
+                flex-wrap: wrap;
+            }
+
+            .countdown-item {
+                min-width: 70px;
+            }
+
+            .countdown-value {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="maintenance-container">
+        <div class="maintenance-header">
+            <h1>网站维护中</h1>
+            <p>我们正在升级系统，为您带来更好的体验</p>
+        </div>
+
+        <div class="maintenance-body text-center">
+            <div class="maintenance-icon">
+                <i class="bi bi-gear-fill"></i>
+            </div>
+
+            <h2>亲爱的用户，感谢您的支持！</h2>
+            <p class="lead">
+                为了提供更好的服务和用户体验，我们正在对系统进行升级和维护。
+                在此期间，网站将暂时不可用。我们对由此带来的不便深表歉意。
+            </p>
+
+            <div class="countdown-container">
+                <h3 class="countdown-title">预计恢复时间：2025年4月18日</h3>
+                <div class="countdown-timer" id="countdown">
+                    <div class="countdown-item">
+                        <div class="countdown-value" id="days">00</div>
+                        <div class="countdown-label">天</div>
+                    </div>
+                    <div class="countdown-item">
+                        <div class="countdown-value" id="hours">00</div>
+                        <div class="countdown-label">时</div>
+                    </div>
+                    <div class="countdown-item">
+                        <div class="countdown-value" id="minutes">00</div>
+                        <div class="countdown-label">分</div>
+                    </div>
+                    <div class="countdown-item">
+                        <div class="countdown-value" id="seconds">00</div>
+                        <div class="countdown-label">秒</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feature-list">
+                <h3>本次更新内容</h3>
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <i class="bi bi-chat-dots"></i>
+                    </div>
+                    <div class="feature-text text-start">
+                        <h3>全新评论系统</h3>
+                        <p>我们将推出功能更强大的评论系统，支持点赞、回复和提及功能，让交流更加便捷。</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div class="feature-text text-start">
+                        <h3>安全性提升</h3>
+                        <p>我们正在加强系统安全性，保护您的账户和数据安全，为您提供更安全的使用环境。</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <i class="bi bi-lightning-charge"></i>
+                    </div>
+                    <div class="feature-text text-start">
+                        <h3>性能优化</h3>
+                        <p>我们将优化系统性能，提高页面加载速度和响应时间，带来更流畅的使用体验。</p>
+                    </div>
+                </div>
+            </div>
+
+            <p>如有任何疑问，请通过以下方式联系我们：</p>
+            <p><strong>邮箱：</strong> 1529791593@qq.com</p>
+
+            <div class="social-links">
+                <a href="#" class="social-link"><i class="bi bi-wechat"></i></a>
+                <a href="#" class="social-link"><i class="bi bi-envelope"></i></a>
+                <a href="#" class="social-link"><i class="bi bi-telephone"></i></a>
+            </div>
+        </div>
+
+        <div class="maintenance-footer">
+            <p>© 2025 研究星球. 保留所有权利.</p>
+        </div>
+    </div>
+
+    <script>
+        // 设置倒计时目标日期为2025年4月18日
+        const targetDate = new Date('2025-04-18T00:00:00');
+
+        // 更新倒计时
+        function updateCountdown() {
+            const currentDate = new Date();
+            const difference = targetDate - currentDate;
+
+            // 如果目标日期已过，显示全零
+            if (difference <= 0) {
+                document.getElementById('days').innerText = '00';
+                document.getElementById('hours').innerText = '00';
+                document.getElementById('minutes').innerText = '00';
+                document.getElementById('seconds').innerText = '00';
+                return;
+            }
+
+            const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+            document.getElementById('days').innerText = days < 10 ? '0' + days : days;
+            document.getElementById('hours').innerText = hours < 10 ? '0' + hours : hours;
+            document.getElementById('minutes').innerText = minutes < 10 ? '0' + minutes : minutes;
+            document.getElementById('seconds').innerText = seconds < 10 ? '0' + seconds : seconds;
+        }
+
+        // 初始更新
+        updateCountdown();
+
+        // 每秒更新一次
+        setInterval(updateCountdown, 1000);
+    </script>
+</body>
+</html>
