@@ -154,8 +154,6 @@ export default {
             
             // 显示预览
             this.showPreview = true;
-            
-            console.log('文章已保存:', article);
             this.proxy.$message.success('文章保存成功！');
         }
         }

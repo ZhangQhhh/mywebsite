@@ -18,10 +18,10 @@ import consoleBlocker from './plugins/consoleBlocker';
 window.bootstrap = bootstrap;
 
 // 确保Bootstrap正确加载
-console.log('Bootstrap加载状态:', {
-  bootstrap: !!bootstrap,
-  Modal: !!(bootstrap && bootstrap.Modal)
-});
+// console.log('Bootstrap加载状态:', {
+//   bootstrap: !!bootstrap,
+//   Modal: !!(bootstrap && bootstrap.Modal)
+// });
 
 // 创建应用实例
 const app = createApp(App);
@@ -32,11 +32,11 @@ app.config.globalProperties.$alert = showAlert;
 app.config.globalProperties.$confirm = showConfirm;
 
 // 确保全局属性正确注册
-console.log('全局属性注册状态:', {
-  $message: !!message,
-  $alert: !!showAlert,
-  $confirm: !!showConfirm
-});
+// console.log('全局属性注册状态:', {
+//   $message: !!message,
+//   $alert: !!showAlert,
+//   $confirm: !!showConfirm
+// });
 
 // 挂载应用
 app.use(store)
@@ -51,4 +51,4 @@ app.use(store)
    .mount('#app')
 
 // 添加在现有代码中
-console.log('Current API URL:', process.env.VUE_APP_API_BASE_URL);
+// console.log('Current API URL:', process.env.VUE_APP_API_BASE_URL);

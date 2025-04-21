@@ -163,7 +163,7 @@
               </table>
               
               <!-- 分页导航 -->
-              <nav v-if="postsTotalPages > 1" aria-label="帖子分页" class="my-4">
+              <nav v-if="userPosts.length > 0" aria-label="帖子分页" class="my-4">
                 <ul class="pagination justify-content-center">
                   <!-- 上一页按钮 -->
                   <li class="page-item" :class="{ disabled: postsCurrentPage === 1 }">
@@ -173,7 +173,10 @@
                   </li>
                   
                   <!-- 页码按钮 -->
-                  <li v-for="page in postsDisplayedPages" :key="page" class="page-item" :class="{ active: postsCurrentPage === page }">
+                  <li v-for="page in postsDisplayedPages" 
+                      :key="page" 
+                      class="page-item" 
+                      :class="{ active: postsCurrentPage === page }">
                     <a class="page-link" href="#" @click.prevent="changePostsPage(page)">{{ page }}</a>
                   </li>
                   
@@ -186,6 +189,8 @@
                 </ul>
               </nav>
             </div>
+
+            <!-- 22222222222222 -->
           </div>
           
           <!-- 删除确认对话框 -->
@@ -417,10 +422,10 @@ export default {
     const postsError = ref(false);
     const postsErrorMessage = ref('');
     const postsCurrentPage = ref(1);
-    const postsPageSize = ref(5);
-    const postsTotalItems = ref(0);
-    const postsTotalPages = ref(0);
-    const postToDelete = ref(null);
+    const postsPageSize = ref(4); // 改小一点，比如每页显示3条 
+    const postsTotalItems = ref(0); // 帖子总数
+    const postsTotalPages = ref(0);// 帖子总页数
+    const postToDelete = ref(null); // 要删除的帖子
     const deleteLoading = ref(false);
     
     // 计算属性：显示哪些页码按钮
@@ -480,6 +485,7 @@ export default {
     const changePostsPage = (page) => {
       if (page < 1 || page > postsTotalPages.value) return;
       postsCurrentPage.value = page;
+      console.log('访问页面' + postsCurrentPage.value);
       loadUserPosts();
     };
     
@@ -493,12 +499,10 @@ export default {
       postToDelete.value = post;
       // 使用Bootstrap的Modal API显示确认对话框
       // 检查window.bootstrap是否存在
-      console.log( window.bootstrap);
       // 确保DOM元素存在
       const modalElement = document.getElementById('deletePostModal');
       if  (modalElement && window.bootstrap && window.bootstrap.Modal) {
         const modal = new window.bootstrap.Modal(modalElement);
-        console.log("确实存在《Modal》");
         modal.show();
       } else {
         // 如用bootstrap对象不可用，使用DOM API手动显示模态框
@@ -740,5 +744,31 @@ export default {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* 分页样式 */
+.pagination {
+  margin-bottom: 0;
+}
+
+.pagination .page-link {
+  padding: 0.375rem 0.75rem;
+  color: #6c757d;
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+}
+
+.pagination .page-item.active .page-link {
+  z-index: 3;
+  color: #fff;
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.pagination .page-item.disabled .page-link {
+  color: #6c757d;
+  pointer-events: none;
+  background-color: #fff;
+  border-color: #dee2e6;
 }
 </style>

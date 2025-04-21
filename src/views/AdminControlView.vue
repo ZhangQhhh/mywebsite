@@ -231,10 +231,10 @@ export default {
   setup() {
     const store = useStore();
     const router = useRouter();
-    const postsCurrentPage = ref(1);
-    const postsTotalPages = ref(1);
-    const postsPageSize = ref(10);
-    const postsTotalItems = ref(0);
+    const postsCurrentPage = ref(1); // 当前页码，默认从第一页开始
+    const postsTotalPages = ref(1); // 总页数，根据总条数和每页条数计算得出
+    const postsPageSize = ref(3);   // 每页显示的数据条数
+    const postsTotalItems = ref(0);  // 数据总条数，从后端返回的总帖子数量
 
 
     // 获取应用实例，用于访问全局属性
@@ -316,7 +316,6 @@ const postsDisplayedPages = computed(() => {
     const filteredUsers = computed(() => {
       // 确保每次计算时都使用最新的users数组
       let result = [...users.value];
-      console.log('计算filteredUsers，原始用户数:', result.length);
 
       // 确保所有用户的状态是字符串类型
       result = result.map(user => ({
@@ -331,13 +330,11 @@ const postsDisplayedPages = computed(() => {
           user.username.toLowerCase().includes(query) ||
           user.id.toString().includes(query)
         );
-        console.log('搜索过滤后的用户数:', result.length);
       }
 
       // 状态过滤
       if (!filters.value.showBanned) {
         result = result.filter(user => user.status === '1');
-        console.log('状态过滤后的用户数:', result.length);
       }
 
       return result;
@@ -377,10 +374,7 @@ const postsDisplayedPages = computed(() => {
           pageNum: currentPage.value,
           pageSize: pageSize.value
         };
-
-        console.log('开始加载用户列表，参数:', params);
         const resp = await getUserList(params);
-        console.log('获取用户列表响应:', resp);
 
         if (resp.error_msg === 'success') {
           // 保存旧的用户列表，用于比较变化
@@ -396,8 +390,6 @@ const postsDisplayedPages = computed(() => {
           users.value = updatedUsers;
           totalItems.value = resp.total || 0;
           totalPages.value = Math.ceil(totalItems.value / pageSize.value);
-
-          console.log('用户列表已更新，用户数量:', users.value.length);
 
           // 检查用户状态变化
           if (oldUsers.length > 0) {
@@ -437,7 +429,6 @@ const postsDisplayedPages = computed(() => {
 
     // 封禁/解封回调函数
     const banCallback = (confirmed, user, buttonElement) => {
-      console.log('封禁/解封确认对话框回调被触发', confirmed);
       // 传递按钮元素，便于在操作完成后更新按钮状态
       handleBanConfirmation(confirmed, user, buttonElement);
     };
@@ -449,8 +440,6 @@ const postsDisplayedPages = computed(() => {
         event.preventDefault();
         event.stopPropagation();
       }
-
-      console.log('点击了封禁/解封按钮', user);
 
       // 防止重复点击
       const banButton = event?.target;
@@ -468,7 +457,6 @@ const postsDisplayedPages = computed(() => {
         // 设置一个安全计时器，确保按钮最终会被启用
         setTimeout(() => {
           buttonRef.disabled = false;
-          console.log('安全计时器恢复按钮状态');
         }, 3000); // 3秒后恢复按钮，时间稍长一点以确保操作完成
       }
 

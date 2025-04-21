@@ -91,14 +91,12 @@
             pageSize: pageSize.value
           });
           
-          // 添加调试信息，查看API返回的数据结构
-          console.log('API返回的帖子数据:', response);
+
           
           if (response.error_msg === 'success') {
             // 更新帖子列表和分页信息
             posts.value = response.posts || [];
-            // 添加调试信息，查看帖子数据结构
-            console.log('当前页码:', currentPage.value, '帖子数据:', posts.value);
+
             totalItems.value = response.total || 0;
             totalPages.value = response.totalPages || 1;
             pageSize.value = response.pageSize || 10;
@@ -168,9 +166,8 @@
       };
       
       // 发布新帖子
-      const post_a_post = (content) => {
+      const post_a_post = () => {
         // 这里可以调用创建帖子的API
-        console.log('发布新帖子:', content);
         // 成功后重新加载帖子列表
         loadPosts();
       };

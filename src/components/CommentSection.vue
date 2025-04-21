@@ -46,11 +46,10 @@ export default {
     },
     pageSize: {
       type: Number,
-      default: 10
+      default: 5
     }
   },
   setup(props) {
-    console.log('Emoji config:', emoji);
     const store = useStore();
     const { proxy } = getCurrentInstance();
     
@@ -66,12 +65,13 @@ export default {
         username: store.state.user?.username,
         avatar: store.state.user?.photo,
         level: store.state.user?.level || 1,
-        homeLink: store.state.user?.id ? `/user/${store.state.user.id}` : ''
+        homeLink: store.state.user?.id ? `/user/${store.state.user.id}` : '',
+        likeIds: [] // 添加这个字段来跟踪用户点赞的评论
       },
       emoji: emoji,
       comments: [],
       relativeTime: true,  // 改为 true，启用相对时间
-      showLevel: true,
+      showLevel: false,
       showHomeLink: true,
       showLikes: true
     });
@@ -88,24 +88,53 @@ export default {
         }, props.contentId);
 
         if (response.success === true) {
-          const newComments = response.data.comments.map(comment => ({
-            id: String(comment.id),
-            parentId: comment.parentId || null,
-            uid: String(comment.userId),
-            address: comment.address || '来自火星',
-            content: comment.content,
-            createTime: dayjs(comment.createdAt).toString(), // 使用toString()
-            user: {
-              id: comment.userId,
-              username: comment.userName,
-              avatar: comment.userAvatar,
-              level: comment.userLevel || 1,
-              homeLink: `/user/${comment.userId}`
-            },
-            likes: comment.likesCount || 0,
-            liked: comment.liked || false,
-            reply: null
-          }));
+          const newComments = response.data.comments.map(comment => {
+            // 处理主评论
+            const mainComment = {
+              id: String(comment.id),
+              parentId: comment.parentId || null,
+              uid: String(comment.userId),
+              address: comment.address || '来自火星',
+              content: comment.content,
+              createTime: dayjs(comment.createdAt).toString(),
+              user: {
+                id: comment.userId,
+                username: comment.userName,
+                avatar: comment.userAvatar,
+                level: comment.userLevel || 1,
+                homeLink: `/user/${comment.userId}`
+              },
+              likes: comment.likesCount || 0,
+              liked: false, // 默认设置为 false，等待后端接口返回实际状态
+              showLike: true
+            };
+
+            // 处理子评论
+            if (comment.childComments && comment.childComments.length > 0) {
+              mainComment.reply = {
+                total: comment.childComments.length,
+                list: comment.childComments.map(reply => ({
+                  id: String(reply.id),
+                  parentId: String(comment.id),
+                  uid: String(reply.userId),
+                  content: reply.content,
+                  createTime: dayjs(reply.createdAt).toString(),
+                  user: {
+                    id: reply.userId,
+                    username: reply.userName,
+                    avatar: reply.userAvatar,
+                    level: reply.userLevel || 1,
+                    homeLink: `/user/${reply.userId}`
+                  },
+                  likes: reply.likesCount || 0,
+                  liked: false, // 默认设置为 false
+                  showLike: true
+                }))
+              };
+            }
+
+            return mainComment;
+          });
 
           if (currentPage.value === 1) {
             commentConfig.comments = newComments;
@@ -208,8 +237,6 @@ export default {
             liked: false,
             reply: null
           };
-
-          console.log('提交评论数据结构:', commentData);
           finish(commentData);
           
           proxy.$message.success('评论发表成功');
@@ -235,29 +262,49 @@ export default {
     }, { deep: true });
 
     // 处理点赞/取消点赞
-    const handleLike = async (comment) => {
+    const handleLike = async (id, finish) => {
+      console.log('点赞:', id);
       if (!store.state.user.token) {
         proxy.$message.error('请先登录');
         return;
       }
 
       try {
-        const response = comment.liked
-          ? await commentApi.unlikeComment(comment.id)
-          : await commentApi.likeComment(comment.id);
+        const comment = findComment(id, commentConfig.comments);
+        if (!comment) {
+          throw new Error('评论不存在');
+        }
 
-        if (response.error_msg === 'success') {
-          // 更新评论的点赞状态
-          comment.liked = !comment.liked;
-          comment.likes = response.data.likes;
-          proxy.$message.success(comment.liked ? '点赞成功' : '已取消点赞');
+        const response = await commentApi.likeComment(id);
+        console.log('点赞响应:', response); // 调试日志
+
+        // 修改判断条件，检查 success 而不是 error_msg
+        if (response.success === true) {  // 改为检查 success 属性
+          finish();
+          proxy.$message.success('操作成功');
         } else {
-          proxy.$message.error(response.error_msg);
+          throw new Error(response.error_msg || '操作失败');
         }
       } catch (err) {
-        proxy.$message.error(comment.liked ? '取消点赞失败' : '点赞失败');
         console.error('点赞操作失败:', err);
+        proxy.$message.error(err.message || '操作失败，请稍后重试');
       }
+    };
+
+    // 添加查找评论的辅助函数
+    const findComment = (id, comments) => {
+      for (const comment of comments) {
+        if (comment.id === id) {
+          return comment;
+        }
+        if (comment.reply && comment.reply.list) {
+          const reply = comment.reply.list.find(r => r.id === id);
+          if (reply) {
+            return reply;
+          }
+        }
+      }
+      return null;
     };
 
     // 处理回复评论
@@ -317,7 +364,6 @@ export default {
           page: current,
           pageSize: size
         });
-        console.log('handleReplyPage API响应:', response);
         if (response.success === true) {
           const replyData = {
             total: response.data.total,
@@ -490,6 +536,11 @@ export default {
   }
 }
 </style>
+
+
+
+
+
 
 
 

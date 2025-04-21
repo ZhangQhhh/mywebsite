@@ -40,8 +40,8 @@
               工具箱
             </a>
             <ul class="dropdown-menu">
-              <li><router-link class="dropdown-item" :to="{ name: 'mark' }">简易编辑器</router-link></li>
-              <li><router-link class="dropdown-item" :to="{ name: 'markdown-editor' }">Markdown编辑器</router-link></li>
+              <!-- <li><router-link class="dropdown-item" :to="{ name: 'mark' }">简易编辑器</router-link></li>
+              <li><router-link class="dropdown-item" :to="{ name: 'markdown-editor' }">Markdown编辑器</router-link></li> -->
               <li><router-link class="dropdown-item" :to="{name:'post-create'}">发帖</router-link></li>
 
               <li v-if="$store.state.user.role === 'ADMIN'"><router-link class="dropdown-item" :to="{name:'admin'}">管理界面</router-link></li>

@@ -111,7 +111,6 @@
       const loadUserPosts = async () => {
         // 检查用户ID是否可用
         if (!user.id) {
-          console.log('用户ID不可用，等待用户信息加载...');
           error.value = true;
           errorMessage.value = '等待用户信息加载...';
           return;
@@ -121,7 +120,7 @@
         error.value = false;
 
         try {
-          console.log('开始加载用户帖子，用户ID:', user.id);
+
 
           // 调用API获取用户帖子列表，传入分页参数
           const response = await getUserPosts(
@@ -132,12 +131,9 @@
             user.id
           );
 
-          console.log('API返回的用户帖子数据:', response);
-
           if (response.error_msg === 'success') {
             // 更新帖子列表和分页信息
             posts.value = response.posts || [];
-            console.log('当前页码:', currentPage.value, '用户帖子数据:', posts.value);
             totalItems.value = response.total || 0;
             totalPages.value = response.totalPages || 1;
             pageSize.value = response.pageSize || 10;
@@ -212,27 +208,22 @@
       onMounted(() => {
         // 检查用户是否已登录
         if (store.state.user.is_login && store.state.user.id) {
-          console.log('用户已登录，直接加载帖子');
           loadUserPosts();
         } else {
           // 如果用户未登录但有token，尝试获取用户信息
           const token = localStorage.getItem('jwt_token');
           if (token) {
-            console.log('发现token，尝试获取用户信息');
             store.commit('updateToken', token);
             store.dispatch('getinfo', {
               success() {
-                console.log('用户信息获取成功，加载帖子');
                 // 用户信息获取成功后，通过watch会自动触发loadUserPosts
               },
               error() {
-                console.error('获取用户信息失败');
                 error.value = true;
                 errorMessage.value = '获取用户信息失败，请重新登录';
               }
             });
           } else {
-            console.log('未发现token，显示需要登录的提示');
             error.value = true;
             errorMessage.value = '请先登录后查看笔记';
           }

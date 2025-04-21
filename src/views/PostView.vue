@@ -34,7 +34,7 @@
           <div class="mt-4">
             <CommentSection 
               :contentId="postId"
-              :pageSize="10"
+              :pageSize="5"
             />
           </div>
         </div>
@@ -72,7 +72,6 @@ export default {
     // 获取路由参数
     const route = useRoute();
     const postId = route.params.id; // 获取帖子ID
-    console.log('帖子ID:', postId);
 
     // 处理内容中的图片URL，确保它们有正确的协议前缀并修复嵌套图片语法
     const processImageUrls = (content) => {
@@ -162,7 +161,6 @@ export default {
       
       // 检查是否在24小时内访问过该帖子
       if (viewedPosts[postId] && (now - viewedPosts[postId]) < twentyFourHours) {
-        console.log('该帖子在24小时内已被访问过，不增加阅读量');
         return false;
       }
       

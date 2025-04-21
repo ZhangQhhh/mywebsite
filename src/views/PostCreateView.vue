@@ -177,11 +177,9 @@ export default {
                 category: category.value,
                 createdAt: new Date().toISOString()
             };
-            console.log("我的乖乖-----"+post.createdAt)
             // 调用API发布帖子
             createPost(post)
-                .then(response => {
-                    console.log('发布帖子成功:', response);
+                .then(() => {
                     // 显示成功消息
                     proxy.$message.success('帖子发布成功！');
                     // 重置表单
@@ -211,8 +209,6 @@ export default {
             getCategories()
                 .then(response => {
                     categories.value = response.postCategories;
-                    console.log('获取到的分类数据:', categories.value);
-                    console.log('获取到的分类id是: ', categories.value.categoryId);
                 })
                 .catch(error => {
                     console.error('获取分类数据失败:', error);
@@ -223,14 +219,10 @@ export default {
 
         const handleImgAdd = (pos, file) => {
             // 显示上传中的提示
-            console.log('正在上传图片:', file.name);
-            console.log('pos = '+pos);
             
             // 调用上传图片API
             uploadImage(file)
                 .then(response => {
-                    console.log('resp:'+response);
-                    console.log('====');
                     let url = response;
                     // 确保URL格式正确（添加协议前缀如果缺少）
                     if (!url.startsWith('http://') && !url.startsWith('https://')) {

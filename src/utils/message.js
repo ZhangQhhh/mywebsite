@@ -48,7 +48,6 @@ const getInstance = () => {
   if (messageInstance && !messageInstance.showInfo) {
     console.warn('MessageBox实例缺少showInfo方法，动态添加');
     messageInstance.showInfo = messageInstance.showSuccess || function(message) {
-      console.log('显示信息:', message);
       return messageInstance.addToast ? messageInstance.addToast(message, 'info') : null;
     };
   }

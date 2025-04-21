@@ -9,7 +9,6 @@ import store from '@/store';
 import { API_ENDPOINTS } from '@/config/api';
 
 export function getUserList(params={}) {
-  console.log(`调用获取用户列表API，参数:`, params);
   return new Promise((resolve, reject) => {
     $.ajax({
       url: API_ENDPOINTS.ADMIN.USERS,
@@ -20,7 +19,6 @@ export function getUserList(params={}) {
       },
       xhrFields:{ withCredentials: true },
       success: function(response) {
-        console.log(`获取用户列表API响应:`, response);
         // 确保用户状态是字符串类型
         if (response.users && Array.isArray(response.users)) {
           response.users = response.users.map(user => ({
@@ -44,7 +42,6 @@ export function getUserList(params={}) {
  * @returns {Promise} - 返回操作结果的Promise
  */
 export function banUser(userId) {
-  console.log(`调用封禁用户API，用户ID: ${userId}`);
   return new Promise((resolve, reject) => {
     $.ajax({
       url: `${API_ENDPOINTS.ADMIN.BAN}/${userId}`,
@@ -53,7 +50,6 @@ export function banUser(userId) {
         Authorization: "Bearer " + store.state.user.token,
       },
       success: function(response) {
-        console.log(`封禁用户API响应:`, response);
         // 确保状态是字符串
         if (response.status !== undefined) {
           response.status = String(response.status);
@@ -61,7 +57,6 @@ export function banUser(userId) {
         resolve(response);
       },
       error: function(error) {
-        console.error(`封禁用户API错误:`, error);
         reject(error);
       }
     });
@@ -74,7 +69,6 @@ export function banUser(userId) {
  * @returns {Promise} - 返回操作结果的Promise
  */
 export function unbanUser(userId) {
-  console.log(`调用解除封禁用户API，用户ID: ${userId}`);
   return new Promise((resolve, reject) => {
     $.ajax({
       url: `${API_ENDPOINTS.ADMIN.UNBAN}/${userId}`,
@@ -83,7 +77,6 @@ export function unbanUser(userId) {
         Authorization: "Bearer " + store.state.user.token,
       },
       success: function(response) {
-        console.log(`解除封禁用户API响应:`, response);
         // 确保状态是字符串
         if (response.status !== undefined) {
           response.status = String(response.status);

@@ -96,7 +96,6 @@ export default {
             url:"http://localhost:3000/test/cors",
             type: 'get',
             success: function(resp){
-                console.log(resp);
                 test_data.value = resp;
             }
         });

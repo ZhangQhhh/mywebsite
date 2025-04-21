@@ -87,13 +87,10 @@ export function replyComment(replyData) {
       headers: {
         Authorization: "Bearer " + store.state.user.token
       },
-      xhrFields: { withCredentials: true },
       success: function(response) {
-        console.log(`回复评论API响应:`, response);
         resolve(response);
       },
       error: function(error) {
-        console.error(`回复评论API错误:`, error);
         reject(error);
       }
     });
@@ -151,7 +148,6 @@ export function likeComment(commentId) {
       headers: {
         Authorization: "Bearer " + store.state.user.token
       },
-      xhrFields: { withCredentials: true },
       success: function(response) {
         console.log(`点赞评论API响应:`, response);
         resolve(response);

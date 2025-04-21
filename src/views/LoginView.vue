@@ -150,11 +150,9 @@ export default {
         password: loginForm.value.password,
         success(resp) {
           if (resp.error_msg === "success") {
-            console.log("登录成功！");
             store.dispatch("getinfo",{
               success(){
                 router.push({name:'home'});
-                console.log(store.state.user)
               }
             })
             

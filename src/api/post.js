@@ -23,7 +23,6 @@ const POST_UPDATE_URL = `${API_BASE_URL}/posts/update`;
  * @returns {Promise} - 返回帖子列表的Promise
  */
 export function getPostList(params = {}) {
-  console.log('获取帖子列表，参数:', params);
 
   return new Promise((resolve, reject) => {
     $.ajax({
@@ -52,7 +51,6 @@ export function getPostList(params = {}) {
  * @returns {Promise} - 返回用户帖子列表的Promise
  */
 export function getUserPosts(params={}, userId) {
-  console.log('获取用户帖子列表，参数:', userId);
 
   return new Promise((resolve, reject) => {
     // 获取最新的token，先从 store 中获取，如果不存在则从 localStorage 中获取
@@ -116,11 +114,9 @@ export function getPostDetail(id) {
       type: 'GET',
       dataType: 'json',
       success: function(response) {
-        console.log(response.post)
         resolve(response);
       },
       error: function(xhr, status, error) {
-        console.error('获取帖子详情失败:', error);
         reject({
           code: xhr.status,
           message: error || '获取帖子详情失败'
@@ -142,7 +138,6 @@ import store from '@/store';
  * @returns {Promise} - 返回创建结果的Promise
  */
 export function createPost(postData) {
-  console.log('创建帖子，数据:', postData);
 
   return new Promise((resolve, reject) => {
     $.ajax({
@@ -180,7 +175,6 @@ export function createPost(postData) {
  * @returns {Promise} - 返回更新结果的Promise
  */
 export function updatePost(id, postData) {
-  console.log('更新帖子，ID:', id, '数据:', postData);
 
   return new Promise((resolve, reject) => {
     $.ajax({
@@ -194,7 +188,6 @@ export function updatePost(id, postData) {
       dataType: 'json',
       success: function(response) {
         if (response.error_msg === 'success') {
-          console.log('更新帖子成功:', response);
           resolve(response);
         } else {
           // 处理业务逻辑错误
@@ -222,7 +215,6 @@ export function updatePost(id, postData) {
  * @returns {Promise} - 返回删除结果的Promise
  */
 export function deletePost(id) {
-  console.log('删除帖子，ID:', id);
 
   return new Promise((resolve, reject) => {
     $.ajax({
@@ -250,7 +242,6 @@ export function deletePost(id) {
  * @returns {Promise} - 返回点赞结果的Promise
  */
 export function likePost(id) {
-  console.log('点赞帖子，ID:', id);
 
   return new Promise((resolve, reject) => {
     $.ajax({
@@ -277,7 +268,6 @@ export function likePost(id) {
  * @returns {Promise} - 返回分类列表的Promise
  */
 export function getCategories() {
-  console.log('获取分类列表');
 
   return new Promise((resolve) => {
     $.ajax({
@@ -289,7 +279,6 @@ export function getCategories() {
       },
       success: function(response) {
         if(response.error_msg === 'success'){
-           console.log('获取分类成功:', response);
            resolve(response.data || response);
         }
 
@@ -297,7 +286,6 @@ export function getCategories() {
       error: function(xhr, status, error) {
         console.error('获取分类失败: ', error.error_msg);
         // 如果API暂未实现，返回默认分类
-        console.log('使用默认分类数据');
         resolve([
           { id: '1', name: '提问' },
           { id: '2', name: '分享' },
@@ -315,7 +303,6 @@ export function getCategories() {
  * @returns {Promise} - 返回上传结果的Promise，成功时返回图片URL
  */
 export function uploadImage(file) {
-  console.log('上传图片到七牛云OSS，文件:', file.name);
 
   // 创建FormData对象，用于发送文件
   const formData = new FormData();
@@ -333,7 +320,6 @@ export function uploadImage(file) {
       },
       success: function(response) {
         if(response.success === true){
-          console.log('图片上传成功:', response);
             // 假设后端返回的数据中包含图片URL
           if (response && response.downloadUrl) {
             resolve(response.downloadUrl);
@@ -362,7 +348,6 @@ export function uploadImage(file) {
  * @returns {Promise} - 返回更新结果的Promise
  */
 export function increasePostViews(id) {
-  console.log('增加帖子阅读量，ID:', id);
 
   return new Promise((resolve, reject) => {
     $.ajax({
@@ -373,11 +358,9 @@ export function increasePostViews(id) {
         Authorization: "Bearer " + store.state.user.token,
       },
       success: function(response) {
-        console.log('增加阅读量成功:', response);
         resolve(response);
       },
       error: function(xhr, status, error) {
-        console.error('增加阅读量失败:', error);
         reject({
           code: xhr.status,
           message: error || '增加阅读量失败'
