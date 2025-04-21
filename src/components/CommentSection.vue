@@ -2,13 +2,19 @@
   <div class="comment-section">
     <!-- 评论输入和列表容器 -->
     <div class="comment-input-container">
-      <u-comment 
-        :config="commentConfig" 
-        @submit="submitComment"
-        @reply="handleReply"
-        @like="handleLike"
-        @mention-search="handleMentionSearch"
-      />
+      <u-comment-scroll :disable="scrollDisabled" @more="loadMore">
+        <u-comment 
+          :config="commentConfig" 
+          @submit="submitComment"
+          @reply="handleReply"
+          @like="handleLike"
+          @mention-search="handleMentionSearch"
+        />
+        <!-- 添加加载状态提示 -->
+        <div v-if="isLoading" class="loading-state">
+          <span>加载中...</span>
+        </div>
+      </u-comment-scroll>
     </div>
 
  
@@ -16,7 +22,7 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted, getCurrentInstance, watch } from 'vue';
+import { ref, reactive, onMounted, onBeforeUnmount, getCurrentInstance, watch } from 'vue';
 import { useStore } from 'vuex';
 import { commentApi } from '@/api/comment';
 import dayjs from 'dayjs';
@@ -48,34 +54,107 @@ export default {
     const store = useStore();
     const { proxy } = getCurrentInstance();
     
-    // 状态数据
-    const comments = ref([]);
+    // 添加滚动加载相关的状态
+    const scrollDisabled = ref(false);
     const currentPage = ref(1);
-    const totalComments = ref(0);
     const isLoading = ref(false);
 
-    // undraw-ui 评论配置
+    // 修改 commentConfig，移除分页相关配置
     const commentConfig = reactive({
       user: {
         id: store.state.user?.id,
         username: store.state.user?.username,
-        avatar: store.state.user?.photo
+        avatar: store.state.user?.photo,
+        level: store.state.user?.level || 1,
+        homeLink: store.state.user?.id ? `/user/${store.state.user.id}` : ''
       },
       emoji: emoji,
-      comments: comments.value,
-      showLevel: false,
-      showHomeLink: false,
-      showAddress: false,
-      showLikes: true,
-      mention: {
-        data: [],
-        alias: {
-          username: 'username'
-        },
-        showAvatar: true
+      comments: [],
+      relativeTime: true,  // 改为 true，启用相对时间
+      showLevel: true,
+      showHomeLink: true,
+      showLikes: true
+    });
+
+    // 添加加载更多的处理函数
+    const loadMore = async () => {
+      if (isLoading.value) return;
+      
+      try {
+        isLoading.value = true;
+        const response = await commentApi.getCommentList({
+          pageNum: currentPage.value,
+          pageSize: props.pageSize
+        }, props.contentId);
+
+        if (response.success === true) {
+          const newComments = response.data.comments.map(comment => ({
+            id: String(comment.id),
+            parentId: comment.parentId || null,
+            uid: String(comment.userId),
+            address: comment.address || '来自火星',
+            content: comment.content,
+            createTime: dayjs(comment.createdAt).toString(), // 使用toString()
+            user: {
+              id: comment.userId,
+              username: comment.userName,
+              avatar: comment.userAvatar,
+              level: comment.userLevel || 1,
+              homeLink: `/user/${comment.userId}`
+            },
+            likes: comment.likesCount || 0,
+            liked: comment.liked || false,
+            reply: null
+          }));
+
+          if (currentPage.value === 1) {
+            commentConfig.comments = newComments;
+          } else {
+            commentConfig.comments.push(...newComments);
+          }
+
+          if (newComments.length < props.pageSize) {
+            scrollDisabled.value = true;
+          } else {
+            currentPage.value++;
+          }
+        }
+      } catch (err) {
+        console.error('加载评论失败:', err);
+        proxy.$message.error('加载评论失败');
+      } finally {
+        isLoading.value = false;
+      }
+    };
+
+    // 初始加载评论
+    onMounted(() => {
+      loadMore();
+    });
+
+    // 添加组件卸载前的清理
+    onBeforeUnmount(() => {
+      try {
+        // 清理评论数据
+        commentConfig.comments = [];
+        // 重置所有状态
+        currentPage.value = 1;
+        scrollDisabled.value = false;
+        isLoading.value = false;
+      } catch (error) {
+        console.error('组件卸载清理失败:', error);
       }
     });
 
+    // 监听 contentId 变化，重置并重新加载评论
+    watch(() => props.contentId, (newVal) => {
+      if (newVal) {
+        currentPage.value = 1;
+        scrollDisabled.value = false;
+        commentConfig.comments = [];
+        loadMore();
+      }
+    });
 
     // 处理@用户搜索
     const handleMentionSearch = async (val) => {
@@ -87,50 +166,6 @@ export default {
         }
       } catch (err) {
         console.error('搜索用户失败:', err);
-      }
-    };
-
-    // 加载评论列表
-    const loadComments = async () => {
-      if (!props.contentId) return;
-
-      isLoading.value = true;
-
-      try {
-        const response = await commentApi.getCommentList({
-          page: currentPage.value,
-          pageSize: props.pageSize
-        }, props.contentId);
-
-        if (response.success === true) {
-          comments.value = response.data.comments.map(comment => ({
-            id: comment.id,
-            parentId: comment.parentId,
-            uid: comment.userId,
-            content: comment.content,
-            createTime: dayjs(comment.createdAt).fromNow(),
-            user: {
-              username: comment.userName,
-              avatar: comment.userAvatar
-            },
-            likes: comment.likesCount,
-            // liked: comment.liked,
-            liked: false,
-            reply: comment.replyToUsername ? {
-              username: comment.replyToUsername,
-              uid: comment.replyToUserId
-            } : null
-          }));
-          commentConfig.comments = comments.value;
-          totalComments.value = response.data.total || 0;
-        } else {
-          proxy.$message.error(response.error_msg);
-        }
-      } catch (err) {
-        proxy.$message.error('加载评论失败');
-        console.error('加载评论失败:', err);
-      } finally {
-        isLoading.value = false;
       }
     };
 
@@ -147,35 +182,44 @@ export default {
           contentType: 'ARTICLE', // 添加内容类型，根据实际业务定义，如：POST/ARTICLE/VIDEO等
           userId: store.state.user.id,
           content: content,
-          parentId: parentId || null,
-          replyToUserId: null, // 普通评论时无需回复用户ID
+          parentId: parentId || null, // 没有父Id就是null
+          replyToUserId: 0, // 普通评论时无需回复用户ID
           likesCount: 0, // 新评论点赞数初始化为0
           status: 1 // 假设1为正常状态
         });
 
         if (response.success === true) {
-          finish({
-            id: response.data.id,
-            parentId: response.data.parentId,
-            uid: response.data.userId,
-            content: response.data.content,
-            createTime: dayjs(response.data.createdAt).fromNow(),
+          // 构造更完整的评论数据结构
+          const commentData = {
+            id: String(response.data.id),
+            parentId: parentId,
+            uid: store.state.user.id,
+            address: response.data.address || '来自火星', // 添加address字段
+            content: content,
+            createTime: dayjs(response.data.createdAt).toString(), // 使用toString()而不是fromNow()
             user: {
-              username: response.data.userName,
-              avatar: response.data.userAvatar
+              id: store.state.user.id,
+              username: store.state.user.username,
+              avatar: store.state.user.photo,
+              level: store.state.user.level || 1,
+              homeLink: `/user/${store.state.user.id}` // 添加用户主页链接
             },
             likes: 0,
-            liked: false
-          });
+            liked: false,
+            reply: null
+          };
+
+          console.log('提交评论数据结构:', commentData);
+          finish(commentData);
           
           proxy.$message.success('评论发表成功');
-          await loadComments();
+          await loadMore();
         } else {
           proxy.$message.error(response.error_msg);
         }
       } catch (err) {
-        proxy.$message.error('评论发表失败');
         console.error('评论发表失败:', err);
+        proxy.$message.error('评论发表失败');
       }
     };
 
@@ -189,19 +233,6 @@ export default {
         };
       }
     }, { deep: true });
-
-    // 监听 contentId 变化
-    watch(() => props.contentId, (newVal) => {
-      if (newVal) {
-        currentPage.value = 1;
-        loadComments();
-      }
-    });
-
-    // 组件挂载时加载评论
-    onMounted(() => {
-      loadComments();
-    });
 
     // 处理点赞/取消点赞
     const handleLike = async (comment) => {
@@ -268,7 +299,7 @@ export default {
           });
           
           proxy.$message.success('回复发表成功');
-          await loadComments();
+          await loadMore();
         } else {
           proxy.$message.error(response.error_msg);
         }
@@ -278,26 +309,65 @@ export default {
       }
     };
 
+    // 添加回复分页处理函数
+    const handleReplyPage = async ({ parentId, current, size, finish }) => {
+      try {
+        const response = await commentApi.getReplyList({
+          parentId,
+          page: current,
+          pageSize: size
+        });
+        console.log('handleReplyPage API响应:', response);
+        if (response.success === true) {
+          const replyData = {
+            total: response.data.total,
+            list: response.data.list.map(reply => ({
+              id: String(reply.id),
+              parentId: String(reply.parentId),
+              uid: String(reply.userId),
+              content: reply.content,
+              createTime: dayjs(reply.createdAt).fromNow(),
+              user: {
+                username: reply.userName,
+                avatar: reply.userAvatar,
+                level: reply.userLevel || 1
+              },
+              likes: reply.likesCount || 0
+            }))
+          };
+          
+          finish(replyData);
+        }
+      } catch (err) {
+        console.error('加载回复列表失败:', err);
+      }
+    };
+
     return {
-      comments,
-      isLoading,
-      totalComments,
-      currentPage,
       commentConfig,
-      loadComments,
+      scrollDisabled,
+      isLoading,
+      loadMore,
       submitComment,
       handleMentionSearch,
       handleLike,
-      handleReply
+      handleReply,
+      handleReplyPage
     };
   }
 }
 </script>
 
 <style scoped>
+/* 移除任何使用 high-contrast 的媒体查询 */
+/* 使用新的 forced-colors 媒体查询 */
+@media (forced-colors: active) {
+  .comment-section {
+    forced-color-adjust: auto;
+  }
+}
 
-
-/* 评论按钮样式 */
+/* 评论按钮样式保持不变 */
 .u-comment .comment-submit {
   background: linear-gradient(45deg, #4a90e2, #357abd) !important;
   color: white !important;
@@ -393,7 +463,53 @@ export default {
   display: flex;
   justify-content: center;
 }
+
+.loading-state {
+  text-align: center;
+  padding: 15px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+/* 可以添加一个加载动画 */
+.loading-state::after {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-left: 8px;
+  border: 2px solid #666;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: loading 0.8s linear infinite;
+}
+
+@keyframes loading {
+  to {
+    transform: rotate(360deg);
+  }
+}
 </style>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
