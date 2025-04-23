@@ -28,7 +28,8 @@ import { commentApi } from '@/api/comment';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
-import emoji from '@/assets/emoji/emoji';
+import emoji from '@/assets/emoji.ts';
+
 
 // 确保已经在 main.js 中全局引入了 undraw-ui
 // import UndrawUi from 'undraw-ui'
@@ -75,7 +76,8 @@ export default {
       showHomeLink: true,
       showLikes: true
     });
-
+    console.log(emoji)
+    console.log(commentConfig)
     // 添加加载更多的处理函数
     const loadMore = async () => {
       if (isLoading.value) return;
@@ -535,7 +537,10 @@ export default {
     transform: rotate(360deg);
   }
 }
+
+
 </style>
+
 
 
 

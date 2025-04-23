@@ -1,6 +1,6 @@
 // 修改路径前缀
-const raw = 'static'  // 或者使用你的实际静态资源路径
-
+ const raw = '/static'  // 或者使用你的实际静态资源路径
+// const raw = window.location.origin + '/static'; // 使用完整的URL
 // 确保表情列表非空
 const faceList = [
   `${raw}/emoji/smile.webp`,
@@ -134,9 +134,16 @@ const emojiList = [
 ]
 
 //把emojiList数组中的每一个对象，放到emojiMap中方便取用
+// function allEmoji() {
+//   let emojiMap = {}
+//   emojiList.map(emojis => (emojiMap = { ...emojiMap, ...emojis }))
+//   return emojiMap
+// }
 function allEmoji() {
   let emojiMap = {}
-  emojiList.map(emojis => (emojiMap = { ...emojiMap, ...emojis }))
+  emojiList.forEach(emojis => {
+    emojiMap = { ...emojiMap, ...emojis }
+  })
   return emojiMap
 }
 

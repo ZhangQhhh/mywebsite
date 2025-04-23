@@ -87,22 +87,12 @@ export default {
     Content,
   },
   setup(){
-    // const jwt_token = localStorage.getItem("jwt_token");
+
     const store = useStore();
     const router = useRouter();
     let err_msg = ref('none ');
 
-    // if(jwt_token){
-    //   store.commit("updateToken",jwt_token);
-    //   store.dispatch("getinfo",{
-    //     success(){
-    //       router.push({name: "home"});
-    //     },
-    //     error(){
-
-    //     }
-    //   })
-    // }
+ 
 
     const loginForm = ref({
       username: '',
