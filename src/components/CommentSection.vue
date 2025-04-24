@@ -76,8 +76,6 @@ export default {
       showHomeLink: true,
       showLikes: true
     });
-    console.log(emoji)
-    console.log(commentConfig)
     // 添加加载更多的处理函数
     const loadMore = async () => {
       if (isLoading.value) return;

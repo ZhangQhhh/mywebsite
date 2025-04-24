@@ -3,6 +3,30 @@
     <div class="card-body">
         <h3 class="mb-4">帖子列表</h3>
 
+        <!-- 分类按钮组 -->
+        <div class="category-buttons mb-4">
+            <button 
+                v-for="category in categories" 
+                :key="category.id"
+                class="btn category-btn"
+                :class="[
+                    selectedCategory === category.id 
+                        ? 'btn-primary' 
+                        : 'btn-outline-primary'
+                ]"
+                @click="changeCategory(category.id)"
+            >
+                {{ category.name }}
+                <span class="badge bg-light text-primary ms-2">
+                    {{ 
+                        category.id === 'all' 
+                            ? posts.length 
+                            : posts.filter(p => p.postCategoryName === category.id).length 
+                    }}
+                </span>
+            </button>
+        </div>
+
         <!-- 加载状态 -->
         <div v-if="loading" class="text-center my-5">
             <div class="spinner-border text-primary" role="status">
@@ -22,13 +46,13 @@
         <!-- 帖子列表内容 -->
         <div v-else>
             <!-- 无数据提示 -->
-            <div v-if="posts.length === 0" class="alert alert-info" role="alert">
-                暂无帖子数据
+            <div v-if="filteredPosts.length === 0" class="alert alert-info" role="alert">
+                当前分类暂无帖子
             </div>
 
             <!-- 帖子卡片列表 -->
             <div v-else>
-                <div v-for="post in posts" :key="post.postId" class="mb-3">
+                <div v-for="post in filteredPosts" :key="post.postId" class="mb-3">
                     <div class="card single-post" @click="goToPostDetail(post.postId)">
                         <div class="card-body">
                             <h5 class="card-title">{{ post.postTitle }}</h5>
@@ -82,7 +106,7 @@
 
 <script>
 import { useRouter } from 'vue-router';
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { API_BASE_URL } from '@/config/api';
 export default{
     name:'UserProfilePosts',
@@ -120,6 +144,17 @@ export default{
     setup(props, { emit }){
         const userNames = ref({});
         const router = useRouter();
+        const selectedCategory = ref('all'); // 当前选中的分类
+        const categories = ref([
+            { id: 'all', name: '全部' },
+            { id: '提问', name: '提问' },
+            { id: '分享', name: '分享' },
+            { id: '建议', name: '建议' },
+            { id: '讨论', name: '讨论' },
+            { id: '动态', name: '动态' },
+            { id: '其他', name: '其他' },
+            { id: '算法题解', name: '算法题解' },
+        ]);
 
         // 用户ID转换为用户名的函数
         const userIdToName = async (userId) => {
@@ -151,6 +186,18 @@ export default{
         // 监听posts变化，重新加载用户名
         watch(() => props.posts, loadUserNames, { immediate: true });
 
+        // 过滤帖子的计算属性
+        const filteredPosts = computed(() => {
+            if (selectedCategory.value === 'all') {
+                return props.posts;
+            }
+            return props.posts.filter(post => post.postCategoryName === selectedCategory.value);
+        });
+
+        // 切换分类的方法
+        const changeCategory = (category) => {
+            selectedCategory.value = category;
+        };
 
         // 跳转到帖子详情页
         const goToPostDetail = (postId) => {
@@ -203,7 +250,11 @@ export default{
             changePage,
             formatDate,
             getContentPreview,
-            userNames
+            userNames,
+            selectedCategory,
+            categories,
+            filteredPosts,
+            changeCategory
         }
     }
 }
@@ -263,5 +314,58 @@ export default{
 
 .post-info-item:first-child::before {
     display: none;  /* 第一个项目不显示分隔点 */
+}
+
+.category-buttons {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1rem 0;
+    border-bottom: 1px solid #eee;
+}
+
+.category-btn {
+    position: relative;
+    transition: all 0.3s ease;
+    min-width: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+}
+
+.category-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.category-btn .badge {
+    border-radius: 12px;
+    font-size: 0.75rem;
+}
+
+/* 选中状态的按钮样式 */
+.btn-primary {
+    background: linear-gradient(145deg, #007bff, #0056b3);
+    border: none;
+    box-shadow: 0 4px 15px rgba(0,123,255,0.2);
+}
+
+.btn-outline-primary:hover {
+    background: linear-gradient(145deg, #007bff, #0056b3);
+    border: none;
+}
+
+/* 添加响应式支持 */
+@media (max-width: 768px) {
+    .category-buttons {
+        justify-content: center;
+    }
+    
+    .category-btn {
+        min-width: 80px;
+        font-size: 0.9rem;
+    }
 }
 </style>

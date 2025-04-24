@@ -13,7 +13,9 @@ import PostCreateView from '@/views/PostCreateView.vue'
 import PostView from '@/views/PostView.vue'
 import PostEditView from '@/views/PostEditView.vue'
 import AdminControlView from '@/views/AdminControlView.vue'
+import ChatView from '@/views/ChatView.vue'
 import store from '../store/index'
+import UserDesc from '@/components/UserDesc.vue'
 
 const routes = [
   {
@@ -109,7 +111,20 @@ const routes = [
       // 前端路由只是一个基本的保护层
     }
   },
-
+  {
+    path: '/ai',
+    name: 'ChatView',
+    component: ChatView,
+    meta: {
+      requestAuth: true,   // 需要授权
+      requireVIP: true     // 添加VIP限制
+    }
+  },
+  {
+    path: '/user/:userId',
+    name: 'UserDesc',
+    component: UserDesc
+  },
   {
     path: '/404',
     name: '404',
@@ -130,49 +145,53 @@ router.beforeEach(async (to, from, next) => {
     // 检查是否有token
     const jwt_token = localStorage.getItem("jwt_token");
 
-    // 如果有token，尝试获取用户信息
-    if (jwt_token) {
-      // 更新token到store
-      store.commit("updateToken", jwt_token);
-
-      // 如果用户还没有登录，尝试获取用户信息
-      if (!store.state.user.is_login) {
-        try {
-          // 使用Promise包装dispatch，使其可以等待
-          await new Promise((resolve, reject) => {
-            store.dispatch("getinfo", {
-              success() {
-                resolve();
-              },
-              error() {
-                reject();
-              }
-            });
-          });
-        } catch (error) {
-          // 获取用户信息失败，token无效
-          showAlert("token无效，请重新登录！");
-          localStorage.removeItem('jwt_token');
-          store.commit("logout");
-
-          // 如果要访问的页面需要登录，重定向到登录页
-          if (to.meta.requestAuth) {
-            next({ name: 'login' });
-            return;
-          }
-        }
-      }
-    }
-
-    // 如果要访问的页面需要登录但用户未登录
-    if (to.meta.requestAuth && !store.state.user.is_login) {
+    // 检查登录权限
+    if (to.meta.requestAuth && !jwt_token) {
       showAlert("请先进行登录！");
       next({ name: "login" });
       return;
     }
 
-    // 其他情况允许访问
+    // 如果有token，获取用户信息
+    if (jwt_token) {
+      store.commit("updateToken", jwt_token);
+
+      if (!store.state.user.is_login) {
+        try {
+          await new Promise((resolve, reject) => {
+            store.dispatch("getinfo", {
+              success() { resolve(); },
+              error() { reject(); }
+            });
+          });
+        } catch (error) {
+          showAlert("token无效，请重新登录！");
+          localStorage.removeItem('jwt_token');
+          store.commit("logout");
+          next({ name: 'login' });
+          return;
+        }
+      }
+
+      // VIP检查 - 修改为兼容多种格式的判断
+      if (to.meta.requireVIP) {
+        // 检查 is_vip 值，兼容字符串 '1' 和布尔值 true
+        const isVip = store.state.user.is_vip === '1';
+        
+        if (!isVip) {
+          showAlert("该功能仅对VIP会员开放！请升级为VIP会员后再访问。");
+          // 返回上一页，而不是直接跳转到首页
+          next(false);
+          return;
+        }
+      }
+    }
+
     next();
 })
 
 export default router
+
+
+
+

@@ -124,12 +124,7 @@ export const showConfirm = (message, title, callback) => {
     hasCallback: !!callback
   });
 
-  // 检查回调函数是否有效
-  if (!callback || typeof callback !== 'function') {
-    console.warn('传入的回调函数无效:', typeof callback);
-  } else {
-    console.log('回调函数有效，类型:', typeof callback);
-  }
+
 
   // 调用实例的showConfirm方法
   const instance = getInstance();

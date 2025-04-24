@@ -14,6 +14,10 @@ export const API_ENDPOINTS = {
     INFO: `${API_BASE_URL}/user/account/info/`,
     UPDATE_PASSWORD: `${API_BASE_URL}/user/updatePassword`,
     UPDATE_AVATAR: `${API_BASE_URL}/user/updateAvatar`,
+    STATS: `${API_BASE_URL}/user/stats`,
+    FOLLOW: `${API_BASE_URL}/user/follow`,
+    UNFOLLOW: `${API_BASE_URL}/user/unfollow`,
+    CHECK_FOLLOW: `${API_BASE_URL}/user/follow/check`,
   },
   POST: {
     BASE: `${API_BASE_URL}/posts`,
@@ -31,4 +35,5 @@ export const API_ENDPOINTS = {
     UNLIKE: `${API_BASE_URL}/comments/unlike`,
   },
 };
+
 

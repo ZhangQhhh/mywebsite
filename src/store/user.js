@@ -10,7 +10,8 @@ export default {
     token: "",
     role: "",
     is_login: false,
-    status: ""  // 1 表示没有被封禁，0表示被封禁
+    status: "",  // 1 表示没有被封禁，0表示被封禁
+    is_vip: 0,
   },
   getters: {
   },
@@ -22,6 +23,7 @@ export default {
       state.role = user.role;
       state.is_login = user.is_login;
       state.status = user.status
+      state.is_vip = user.is_vip
     },
     updateToken(state, token) {
       state.token = token;

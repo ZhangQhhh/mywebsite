@@ -43,14 +43,22 @@
               <!-- <li><router-link class="dropdown-item" :to="{ name: 'mark' }">简易编辑器</router-link></li>
               <li><router-link class="dropdown-item" :to="{ name: 'markdown-editor' }">Markdown编辑器</router-link></li> -->
               <li><router-link class="dropdown-item" :to="{name:'post-create'}">发帖</router-link></li>
-
-              <li v-if="$store.state.user.role === 'ADMIN'"><router-link class="dropdown-item" :to="{name:'admin'}">管理界面</router-link></li>
+              <li>
+                <a class="dropdown-item" @click="handleAIClick">
+                  AI助手
+                  <span class="vip-badge" title="VIP功能">
+                    <i class="fas fa-crown" style="color: #FFD700;"></i>
+                  </span>
+                </a>
+              </li>
+              <li v-if="$store.state.user.role === 'ADMIN'">
+                <router-link class="dropdown-item" :to="{name:'admin'}">管理界面</router-link>
+              </li>
               <li><a class="dropdown-item" v-on:click="logout">退出账号</a></li>
             </ul>
           </li>
 
         </ul>
-
 
         <ul class="navbar-nav " v-else>
 
@@ -66,8 +74,8 @@
               工具箱
             </a>
             <ul class="dropdown-menu">
-              <li><router-link class="dropdown-item" :to="{ name: 'mark' }">简易编辑器</router-link></li>
-              <li><router-link class="dropdown-item" :to="{ name: 'markdown-editor' }">Markdown编辑器</router-link></li>
+              <!-- <li><router-link class="dropdown-item" :to="{ name: 'mark' }">简易编辑器</router-link></li>
+              <li><router-link class="dropdown-item" :to="{ name: 'markdown-editor' }">Markdown编辑器</router-link></li> -->
               <li><router-link class="dropdown-item" :to="{ name: 'post-create' }">发帖</router-link></li>
 
             </ul>
@@ -83,14 +91,50 @@
 
 <script>
 import {useStore} from 'vuex';
-import { onMounted } from 'vue';
+import { onMounted, getCurrentInstance } from 'vue';
+import { useRouter } from 'vue-router';
+import {showAlert } from '@/utils';
 
 export default {
   name: "NavBar",
   setup(){
     const store = useStore();
+    const router = useRouter();
+    const { proxy } = getCurrentInstance();
+    
     const logout = () => {
       store.dispatch("logout");
+    }
+    
+    // 添加处理AI助手点击的方法
+    const handleAIClick = () => {
+      // 判断用户是否是VIP会员
+      const isVip = store.state.user.is_vip === '1' || 
+                    store.state.user.is_vip === 1 || 
+                    store.state.user.is_vip === true;
+      
+      if (isVip) {
+        // 是VIP会员，直接导航到AI助手页面
+        router.push({name: 'ChatView'});
+      } else {
+        // 不是VIP会员，显示提示信息
+        if (proxy && proxy.$confirm) {
+          // 使用全局注册的确认对话框
+          proxy.$confirm(
+            '该功能仅对VIP会员开放，是否立即升级为VIP会员？', 
+            '友情提示', 
+            (confirmed) => {
+              if (confirmed) {
+                // 用户点击确认，跳转到VIP购买页面
+                router.push({name: 'userprofile'}); // 这里替换成实际的VIP购买页面路径
+              }
+            }
+          );
+        } else {
+          // 降级方案：使用导入的showAlert函数
+          showAlert("该功能仅对VIP会员开放！请升级为VIP会员后再访问。");
+        }
+      }
     }
 
     // 在组件挂载后确保Bootstrap下拉菜单正常工作
@@ -101,6 +145,7 @@ export default {
 
     return {
       logout,
+      handleAIClick
     }
   }
 }
@@ -110,5 +155,17 @@ export default {
 <style scoped>
 .logo {
   /* border-radius: 50%; */
+}
+
+.vip-badge {
+  margin-left: 5px;
+  font-size: 0.9em;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
 }
 </style>

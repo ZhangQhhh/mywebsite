@@ -39,7 +39,6 @@ export function getCommentList(params, contentId) {
  * @returns {Promise} - 返回添加结果的Promise
  */
 export function addComment(commentData) {
-  console.log(`调用添加评论API，数据:`, commentData);
   return new Promise((resolve, reject) => {
     if (!store.state.user.token) {
       reject(new Error('请先登录'));
@@ -72,7 +71,6 @@ export function addComment(commentData) {
  * @returns {Promise} - 返回回复结果的Promise
  */
 export function replyComment(replyData) {
-  console.log(`调用回复评论API，数据:`, replyData);
   return new Promise((resolve, reject) => {
     if (!store.state.user.token) {
       reject(new Error('请先登录'));

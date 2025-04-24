@@ -43,7 +43,6 @@ let emoji = {
       { label: '[口罩]', value: '/static/emoji/kouzhao.webp' },
       { label: '[狗头]', value: '/static/emoji/goutou.webp' },
       { label: '[微笑]', value: '/static/emoji/smile.webp' },
-      { label: '[微笑2]', value: '/static/emoji/smile2.webp' },
       { label: '[OK]', value: '/static/emoji/ok.webp' },
       { label: '[星星眼]', value: '/static/emoji/star.webp' },
       { label: '[辣眼睛]', value: '/static/emoji/layanjing.webp' },

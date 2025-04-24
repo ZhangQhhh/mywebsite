@@ -47,12 +47,12 @@
 <script>
 // @ is an alias to /src
 import Content from '../components/ContentBase';
-
 export default {
   name:"HomeView",
   components:{
     Content: Content,
   },
+
   data() {
     return {
       featuredCards: [
