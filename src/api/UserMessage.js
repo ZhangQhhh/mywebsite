@@ -59,17 +59,15 @@ export function toggleFollow(targetUserId, isFollow) {
 
 /**
  * 检查是否已关注某用户
- * @param {string|number} targetUserId - 目标用户ID
+ * @param {string|number,string|number} targetUserId,currentUserId - 目标用户ID
  * @returns {Promise}
+ * 检查targetUserId 是否关注了 currentUserId
  */
-export function checkFollowStatus(targetUserId) {
+export function checkFollowStatus(targetUserId,currentUserId) {
     return new Promise((resolve, reject) => {
         $.ajax({
-            url: `${API_ENDPOINTS.USER.CHECK_FOLLOW}/${targetUserId}`,
+            url: `${API_ENDPOINTS.USER.CHECK_FOLLOW}/${targetUserId}/${currentUserId}`,
             type: 'GET',
-            headers: {
-                Authorization: "Bearer " + store.state.user.token
-            },
             success: function(response) {
                 resolve(response);
             },

@@ -17,7 +17,7 @@ export const API_ENDPOINTS = {
     STATS: `${API_BASE_URL}/user/stats`,
     FOLLOW: `${API_BASE_URL}/user/follow`,
     UNFOLLOW: `${API_BASE_URL}/user/unfollow`,
-    CHECK_FOLLOW: `${API_BASE_URL}/user/follow/check`,
+    CHECK_FOLLOW: `${API_BASE_URL}/follow/check`,
   },
   POST: {
     BASE: `${API_BASE_URL}/posts`,

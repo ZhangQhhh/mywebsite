@@ -13,6 +13,7 @@ import { API_BASE_URL } from '@/config/api';
 const UPDATE_PASSWORD_URL = `${API_BASE_URL}/user/updatePassword`
 const UPDATE_PHOTO_URL = `${API_BASE_URL}/user/updateAvatar`
 const DELETE_POST_BY_POSTID = `${API_BASE_URL}/posts/delete/`
+const USER_INFO_URL = `${API_BASE_URL}/user/find`;
 /**
  * 修改用户密码
  * @param {Object} passwordData - 包含当前密码和新密码的对象
@@ -89,6 +90,21 @@ export function deleteUserPost(postId) {
       headers: {
         Authorization: "Bearer " + store.state.user.token,
       },
+      success: function(response) {
+        resolve(response);
+      },
+      error: function(error) {
+        reject(error);
+      }
+    });
+  });
+}
+
+export function getUserInfo(userId) {
+  return new Promise((resolve, reject) => {
+    $.ajax({
+      url: `${USER_INFO_URL}/${userId}`,
+      type: 'GET',
       success: function(response) {
         resolve(response);
       },

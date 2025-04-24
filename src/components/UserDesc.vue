@@ -12,7 +12,7 @@
             </div>
             <div class="user-details">
               <h2 class="username">{{ user.username }}</h2>
-              <p v-if="user.status === '1'" class="user-status active">
+              <p v-if="user.status === 1" class="user-status active">
                 <i class="bi bi-check-circle-fill"></i> 正常状态
               </p>
               <p v-else class="user-status banned">
@@ -21,7 +21,7 @@
               <p class="user-role">
                 <i class="bi bi-award-fill"></i> 
                 {{ user.role === 'ADMIN' ? '管理员' : '普通用户' }}
-                <span v-if="user.is_vip === '1' || user.is_vip === 1 || user.is_vip === true" class="vip-badge">
+                <span v-if="user.vip === '1' || user.vip === 1 || user.vip === true" class="vip-badge">
                   <i class="bi bi-stars"></i> VIP会员
                 </span>
               </p>
@@ -182,12 +182,13 @@
         photo: '',
         role: '',
         status: '1',
-        is_vip: 0,
+        vip: 0,
         createTime: '',
         location: '',
         bio: '',
         is_followed: false
       });
+      
       
       // 用户统计信息
       const userStats = reactive({
@@ -255,29 +256,31 @@
             user.photo = store.state.user.photo;
             user.role = store.state.user.role;
             user.status = store.state.user.status;
-            user.is_vip = store.state.user.is_vip;
+            user.vip = store.state.user.vip;
           } else {
             // 获取目标用户信息
             const userInfoResponse = await getUserInfo(targetUserId);
             if (userInfoResponse.error_msg === 'success') {
-              Object.assign(user, userInfoResponse.data);
+              Object.assign(user, userInfoResponse.user);
             } else {
               throw new Error(userInfoResponse.error_msg || '获取用户信息失败');
             }
             
             // 检查关注状态
-            const followStatusResponse = await checkFollowStatus(targetUserId);
-            if (followStatusResponse.error_msg === 'success') {
+            const currentUserId = store.state.user.id;
+            const followStatusResponse = await checkFollowStatus(targetUserId,currentUserId);
+            if (followStatusResponse.success === true) {
               user.is_followed = followStatusResponse.data.isFollowing;
+            } else{
+              throw new Error(followStatusResponse.error_msg || '检查关注状态失败');
             }
           }
           
-          // 获取用户统计信息（TODO 记得实现）
-          // const statsResponse = await getUserStats(targetUserId);
-          // if (statsResponse.error_msg === 'success') {
-          //   Object.assign(userStats, statsResponse.data);
-          // }
-          console.log(getUserStats)
+          //获取用户统计信息（TODO 记得实现）
+          const statsResponse = await getUserStats(targetUserId);
+          if (statsResponse.success === true) {
+            Object.assign(userStats, statsResponse.data);
+          }
           
           // 加载用户帖子
           await loadUserPosts();

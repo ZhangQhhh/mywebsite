@@ -17,11 +17,7 @@ import consoleBlocker from './plugins/consoleBlocker'
 // 手动将Bootstrap挂载到window对象
 window.bootstrap = bootstrap
 
-// 确保Bootstrap正确加载
-// console.log('Bootstrap加载状态:', {
-//   bootstrap: !!bootstrap,
-//   Modal: !!(bootstrap && bootstrap.Modal)
-// })
+
 
 // 创建应用实例
 const app = createApp(App)

@@ -108,30 +108,30 @@ export default {
     
     // 添加处理AI助手点击的方法
     const handleAIClick = () => {
-      // 判断用户是否是VIP会员
       const isVip = store.state.user.is_vip === '1' || 
                     store.state.user.is_vip === 1 || 
                     store.state.user.is_vip === true;
       
       if (isVip) {
-        // 是VIP会员，直接导航到AI助手页面
         router.push({name: 'ChatView'});
       } else {
-        // 不是VIP会员，显示提示信息
-        if (proxy && proxy.$confirm) {
-          // 使用全局注册的确认对话框
-          proxy.$confirm(
-            '该功能仅对VIP会员开放，是否立即升级为VIP会员？', 
-            '友情提示', 
-            (confirmed) => {
-              if (confirmed) {
-                // 用户点击确认，跳转到VIP购买页面
-                router.push({name: 'userprofile'}); // 这里替换成实际的VIP购买页面路径
+        try {
+          if (proxy && proxy.$confirm) {
+            proxy.$confirm(
+              '该功能仅对VIP会员开放，是否立即升级为VIP会员？', 
+              '友情提示', 
+              (confirmed) => {
+                if (confirmed) {
+                  router.push({name: 'userprofile'});
+                }
+                // 移除 else 块，不需要对取消操作做特殊处理
               }
-            }
-          );
-        } else {
-          // 降级方案：使用导入的showAlert函数
+            );
+          } else {
+            showAlert("该功能仅对VIP会员开放！请升级为VIP会员后再访问。");
+          }
+        } catch (error) {
+          console.error('显示确认对话框时发生错误:', error);
           showAlert("该功能仅对VIP会员开放！请升级为VIP会员后再访问。");
         }
       }

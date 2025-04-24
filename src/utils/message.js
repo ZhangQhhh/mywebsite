@@ -109,36 +109,38 @@ export const showAlert = (message) => {
 export const showConfirm = (message, title, callback) => {
   // 处理参数顺序问题
   if (typeof title === 'function' && callback === undefined) {
-    // 如果第二个参数是函数，则它是回调
     callback = title;
     title = '确认';
   } else if (title === undefined) {
-    // 如果没有提供标题，使用默认值
     title = '确认';
   }
-
-  console.log('调用全局showConfirm函数', {
-    message,
-    title,
-    callbackType: typeof callback,
-    hasCallback: !!callback
-  });
-
-
 
   // 调用实例的showConfirm方法
   const instance = getInstance();
   if (instance && typeof instance.showConfirm === 'function') {
-    instance.showConfirm(message, title, callback);
+    instance.showConfirm(message, title, (confirmed) => {
+      // 确保callback存在且是函数才调用
+      if (callback && typeof callback === 'function') {
+        try {
+          callback(confirmed);
+        } catch (error) {
+          console.error('确认回调执行错误:', error);
+        }
+      }
+    });
   } else {
-    console.error('MessageBox实例缺少showConfirm方法，使用原生confirm');
+    // 降级使用原生confirm
     try {
       const confirmed = window.confirm(message);
       if (callback && typeof callback === 'function') {
         callback(confirmed);
       }
     } catch (e) {
-      console.error('无法显示确认对话框:', e);
+      console.error('显示确认对话框失败:', e);
+      // 确保在出错时也调用回调，传入false
+      if (callback && typeof callback === 'function') {
+        callback(false);
+      }
     }
   }
 };

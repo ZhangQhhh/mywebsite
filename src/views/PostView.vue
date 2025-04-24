@@ -59,6 +59,8 @@ import Content from '@/components/ContentBase.vue';
 import MarkShow from '@/components/MarkShow.vue';
 import CommentSection from '@/components/CommentSection.vue'; // 导入评论组件
 import { getPostDetail, increasePostViews } from '@/api/post';
+// 导入 bootstrap-icons 样式，确保图标正确加载
+
 
 export default {
   name: 'PostView',
@@ -313,6 +315,7 @@ export default {
 
 .author-email i {
   color: #3498db;
+  font-size: 1rem; /* 确保图标大小合适 */
 }
 
 /* 帖子内容区域 */
