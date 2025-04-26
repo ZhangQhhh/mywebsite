@@ -12,6 +12,7 @@ export default {
     is_login: false,
     status: "",  // 1 表示没有被封禁，0表示被封禁
     vip: 0,
+    email:"",
   },
   getters: {
   },
@@ -23,7 +24,9 @@ export default {
       state.role = user.role;
       state.is_login = user.is_login;
       state.status = user.status
-      state.vip = user.vip
+      state.vip = user.vip,
+      state.email = user.email
+
     },
     updateToken(state, token) {
       state.token = token;
@@ -37,6 +40,7 @@ export default {
       state.is_login = false;
       state.status = "";
       state.vip = 0;
+      state.email = "";
     }
   },
   actions: {  // 修改state的函数写在actions里边

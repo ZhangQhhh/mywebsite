@@ -28,11 +28,11 @@
         <ul class="navbar-nav " v-if="$store.state.user.is_login">
 
           <li class="nav-item">
-            <a class="nav-link" >{{ $store.state.user.username }}</a>
+            <router-link class="nav-link" :to="{name: 'UserDesc',params:{userId:$store.state.user.id}}" >{{ $store.state.user.username }}</router-link>
           </li>
-          <li class="nav-item">
+          <!-- <li class="nav-item">
             <router-link class="nav-link" :to="{ name: 'rigister' }">注册</router-link>
-          </li>
+          </li> -->
 
 
           <li class="nav-item dropdown">
@@ -91,16 +91,18 @@
 
 <script>
 import {useStore} from 'vuex';
-import { onMounted, getCurrentInstance } from 'vue';
+// getCurrentInstance
+import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {showAlert } from '@/utils';
+import { UToast } from 'undraw-ui'
 
 export default {
   name: "NavBar",
   setup(){
     const store = useStore();
     const router = useRouter();
-    const { proxy } = getCurrentInstance();
+    // const { proxy } = getCurrentInstance();
     
     const logout = () => {
       store.dispatch("logout");
@@ -116,20 +118,21 @@ export default {
         router.push({name: 'ChatView'});
       } else {
         try {
-          if (proxy && proxy.$confirm) {
-            proxy.$confirm(
-              '该功能仅对VIP会员开放，是否立即升级为VIP会员？', 
-              '友情提示', 
-              (confirmed) => {
-                if (confirmed) {
-                  router.push({name: 'userprofile'});
-                }
-                // 移除 else 块，不需要对取消操作做特殊处理
-              }
-            );
-          } else {
-            showAlert("该功能仅对VIP会员开放！请升级为VIP会员后再访问。");
-          }
+          // if (proxy && proxy.$confirm) {
+          //   proxy.$confirm(
+          //     '该功能仅对VIP会员开放，是否立即升级为VIP会员？', 
+          //     '友情提示', 
+          //     (confirmed) => {
+          //       if (confirmed) {
+          //         router.push({name: 'userprofile'});
+          //       }
+          //       // 移除 else 块，不需要对取消操作做特殊处理
+          //     }
+          //   );
+          // } else {
+          //   showAlert("该功能仅对VIP会员开放！请升级为VIP会员后再访问。");
+          // }
+          UToast({ message: '该功能仅对VIP会员开放！请升级为VIP会员后再访问。', type: 'error',duration:'3000' })
         } catch (error) {
           console.error('显示确认对话框时发生错误:', error);
           showAlert("该功能仅对VIP会员开放！请升级为VIP会员后再访问。");

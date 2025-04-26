@@ -238,24 +238,50 @@ export function deletePost(id) {
 
 /**
  * 点赞帖子
- * @param {number|string} id - 帖子ID
- * @returns {Promise} - 返回点赞结果的Promise
+ * @param {string|number} postId - 帖子ID
+ * @returns {Promise} 返回点赞操作的结果
  */
-export function likePost(id) {
-
+export function likePost(postId) {
   return new Promise((resolve, reject) => {
     $.ajax({
-      url: `${POST_API_URL}/${id}/like`,
+      url: `${POST_GET_API_URL}/${postId}/like`,
       type: 'POST',
-      dataType: 'json',
+      headers: {
+        Authorization: "Bearer " + store.state.user.token,
+      },
       success: function(response) {
         resolve(response);
       },
       error: function(xhr, status, error) {
-        console.error('点赞帖子失败:', error);
         reject({
           code: xhr.status,
-          message: error || '点赞帖子失败'
+          message: error || '点赞操作失败'
+        });
+      }
+    });
+  });
+}
+
+/**
+ * 收藏帖子
+ * @param {string|number} postId - 帖子ID
+ * @returns {Promise} 返回收藏操作的结果
+ */
+export function collectPost(postId) {
+  return new Promise((resolve, reject) => {
+    $.ajax({
+      url: `${POST_GET_API_URL}/${postId}/collect`,
+      type: 'POST',
+      headers: {
+        Authorization: "Bearer " + store.state.user.token,
+      },
+      success: function(response) {
+        resolve(response);
+      },
+      error: function(xhr, status, error) {
+        reject({
+          code: xhr.status,
+          message: error || '收藏操作失败'
         });
       }
     });

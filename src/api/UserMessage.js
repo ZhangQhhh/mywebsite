@@ -36,13 +36,13 @@ export function getUserStats(userId) {
  * @param {boolean} isFollow - true为关注，false为取消关注
  * @returns {Promise}
  */
-export function toggleFollow(targetUserId, isFollow) {
+export function toggleFollow(targetUserId, isFollow,currentUserId) {
     const url = isFollow ? API_ENDPOINTS.USER.FOLLOW : API_ENDPOINTS.USER.UNFOLLOW;
     
     return new Promise((resolve, reject) => {
         $.ajax({
-            url: `${url}/${targetUserId}`,
-            type: 'POST',
+            url: `${url}/${targetUserId}/${currentUserId}`,
+            type: 'GET',
             headers: {
                 Authorization: "Bearer " + store.state.user.token
             },

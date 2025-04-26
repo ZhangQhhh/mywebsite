@@ -40,11 +40,20 @@
           <div v-else class="post-body">
             <MarkShow :content="markdownContent" :title="title" :createdAt="createdTime" :category="category"
               :categoryName="categoryName" :showTitle="true" :showTime="true" :showCategory="true" />
-          </div>
+            
+            <!-- 添加点赞收藏组件 -->
+            <PostActions
+              :postId="postId"
+              :initialLikes="posts.postLikes || 0"
+              :initialCollects="posts.postCollects || 0"
+              :initialIsLiked="posts.isLiked || false"
+              :initialIsCollected="posts.isCollected || false"
+            />
 
-          <!-- 添加评论组件 -->
-          <div class="comments-section">
-            <CommentSection :contentId="postId" :pageSize="5" />
+            <!-- 评论组件 -->
+            <div class="comments-section">
+              <CommentSection :contentId="postId" :pageSize="5" />
+            </div>
           </div>
         </div>
       </div>
@@ -57,7 +66,8 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Content from '@/components/ContentBase.vue';
 import MarkShow from '@/components/MarkShow.vue';
-import CommentSection from '@/components/CommentSection.vue'; // 导入评论组件
+import CommentSection from '@/components/CommentSection.vue';
+import PostActions from '@/components/PostActions.vue';
 import { getPostDetail, increasePostViews } from '@/api/post';
 // 导入 bootstrap-icons 样式，确保图标正确加载
 
@@ -67,7 +77,8 @@ export default {
   components: {
     Content,
     MarkShow,
-    CommentSection // 注册评论组件
+    CommentSection,
+    PostActions
   },
   setup() {
     // 响应式数据
@@ -145,7 +156,13 @@ export default {
         if (response.error_msg === 'success') {
           // 使用获取到的帖子内容
           const post = response.post;
-          posts.value = response.post;
+          posts.value = {
+            ...post,
+            isLiked: post.isLiked || false,
+            isCollected: post.isCollected || false,
+            postLikes: post.postLikes || 0,
+            postCollects: post.postCollects || 0
+          };
           user.value = response.user;
           console.log(user.value);
           console.log(posts.value);

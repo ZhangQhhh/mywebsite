@@ -1,10 +1,12 @@
 <template>
 <div class="card">
     <div class="card-body">
-        <h3 class="mb-4">帖子列表</h3>
+        <h3 class="section-title">
+            <i class="bi bi-file-earmark-text"></i> 帖子列表
+        </h3>
 
         <!-- 分类按钮组 -->
-        <div class="category-buttons mb-4">
+        <div class="category-buttons">
             <button 
                 v-for="category in categories" 
                 :key="category.id"
@@ -28,77 +30,67 @@
         </div>
 
         <!-- 加载状态 -->
-        <div v-if="loading" class="text-center my-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">加载中...</span>
-            </div>
-            <p class="mt-2">正在加载帖子列表...</p>
+        <div v-if="loading" class="loading-container">
+            <div class="spinner"></div>
+            <p>正在加载帖子...</p>
         </div>
 
         <!-- 错误提示 -->
-        <div v-else-if="error" class="alert alert-danger" role="alert">
-            <h4 class="alert-heading">加载失败</h4>
+        <div v-else-if="error" class="error-message">
+            <i class="bi bi-exclamation-triangle-fill"></i>
             <p>{{ errorMessage }}</p>
-            <hr>
-            <p class="mb-0">请检查网络连接或稍后再试。</p>
         </div>
 
-        <!-- 帖子列表内容 -->
-        <div v-else>
-            <!-- 无数据提示 -->
-            <div v-if="filteredPosts.length === 0" class="alert alert-info" role="alert">
-                当前分类暂无帖子
-            </div>
+        <!-- 没有帖子 -->
+        <div v-else-if="filteredPosts.length === 0" class="empty-posts">
+            <i class="bi bi-file-earmark-x"></i>
+            <p>当前分类暂无帖子</p>
+        </div>
 
-            <!-- 帖子卡片列表 -->
-            <div v-else>
-                <div v-for="post in filteredPosts" :key="post.postId" class="mb-3">
-                    <div class="card single-post" @click="goToPostDetail(post.postId)">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ post.postTitle }}</h5>
-                           <div class="row">
-                                <div class="col-9">
-                                    <p class="card-text text-muted small d-flex flex-wrap align-items-center gap-3">
-                                        <span>发布时间: {{ formatDate(post.createTime) }}</span>
-                                        <span class="post-info-item">阅读量: {{ post.postViews || 0 }}</span>
-                                        <span class="post-info-item">收藏: {{ post.postCollects || 0 }}</span>
-                                        <span class="post-info-item">作者: {{ userNames[post.publishUserId] || '加载中...' }}</span>
-                                    </p>
-                                </div>
-                                <div class="col-3">
-                                    <span class="mark-show-category badge bg-primary me-2">{{ post.postCategoryName }}</span>
-                                </div>
-                           </div>
-
-                            <p class="card-text post-content-preview">{{ getContentPreview(post.postContent) }}</p>
-                        </div>
+        <!-- 帖子列表 -->
+        <div v-else class="posts-list">
+            <div v-for="post in filteredPosts" :key="post.postId" class="post-card" @click="goToPostDetail(post.postId)">
+                <div class="post-header">
+                    <h4 class="post-title">{{ post.postTitle }}</h4>
+                    <span class="post-category">{{ post.postCategoryName }}</span>
+                </div>
+                <p class="post-preview">{{ getContentPreview(post.postContent) }}</p>
+                <div class="post-footer">
+                    <span class="post-time"><i class="bi bi-clock"></i> {{ formatDate(post.createTime) }}</span>
+                    <div class="post-stats">
+                        <span class="post-stat"><i class="bi bi-eye"></i> {{ post.postViews || 0 }}</span>
+                        <span class="post-stat"><i class="bi bi-hand-thumbs-up"></i> {{ post.postLikes || 0 }}</span>
+                        <span class="post-stat"><i class="bi bi-bookmark"></i> {{ post.postCollects || 0 }}</span>
+                        <span class="post-stat"><i class="bi bi-person"></i> {{ userNames[post.publishUserId] || '加载中...' }}</span>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- 分页导航 -->
-            <nav v-if="totalPages > 1" aria-label="帖子分页" class="my-4">
-                <ul class="pagination justify-content-center">
-                    <!-- 上一页按钮 -->
-                    <li class="page-item" :class="{ disabled: currentPage === 1 }">
-                        <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)" aria-label="上一页">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
-
-                    <!-- 页码按钮 -->
-                    <li v-for="page in displayedPages" :key="page" class="page-item" :class="{ active: currentPage === page }">
-                        <a class="page-link" href="#" @click.prevent="changePage(page)">{{ page }}</a>
-                    </li>
-
-                    <!-- 下一页按钮 -->
-                    <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-                        <a class="page-link" href="#" @click.prevent="changePage(currentPage + 1)" aria-label="下一页">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-                </ul>
-            </nav>
+        <!-- 分页控件 -->
+        <div v-if="totalPages > 1" class="pagination-container">
+            <button 
+                class="btn page-btn" 
+                :class="{ disabled: currentPage === 1 }"
+                @click="changePage(currentPage - 1)">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            
+            <button 
+                v-for="page in displayedPages" 
+                :key="page" 
+                class="btn page-btn" 
+                :class="{ active: currentPage === page }"
+                @click="changePage(page)">
+                {{ page }}
+            </button>
+            
+            <button 
+                class="btn page-btn" 
+                :class="{ disabled: currentPage === totalPages }"
+                @click="changePage(currentPage + 1)">
+                <i class="bi bi-chevron-right"></i>
+            </button>
         </div>
     </div>
 </div>
@@ -261,111 +253,251 @@ export default{
 </script>
 
 <style scoped>
-.single-post{
-    margin-bottom: 10px;
-    transition: transform 0.2s, box-shadow 0.2s;
-    cursor: pointer;
-    border-left: 4px solid #007bff;
-}
-.mark-show-category{
-    font-size: 0.8rem;
+/* 用户帖子部分样式 */
+.card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
 }
 
-.single-post:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+.section-title {
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #333;
 }
 
-.post-content-preview {
-    color: #6c757d;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
+.section-title i {
+  color: #6a9eda;
 }
 
-.pagination .page-link {
-    color: #007bff;
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #888;
 }
 
-.pagination .page-item.active .page-link {
-    background-color: #007bff;
-    border-color: #007bff;
-    color: white;
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(106, 158, 218, 0.2);
+  border-left-color: #6a9eda;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
 }
 
-.post-info-item {
-    /* 移除右边距，因为现在使用了 gap */
-    margin-right: 0;
-    /* 可以添加一个小图标或分隔符 */
-    position: relative;
-    display: inline-flex;
-    align-items: center;
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
-/* 可选：添加分隔点 */
-.post-info-item::before {
-    content: "•";
-    margin-right: 8px;
-    color: #dee2e6;
-    display: none;  /* 默认隐藏 */
+.error-message, .empty-posts {
+  text-align: center;
+  padding: 3rem;
+  color: #888;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
 }
 
-.post-info-item:first-child::before {
-    display: none;  /* 第一个项目不显示分隔点 */
+.error-message i, .empty-posts i {
+  font-size: 3rem;
+  color: #ff6b6b;
+}
+
+.empty-posts i {
+  color: #6a9eda;
+}
+
+.posts-list {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.post-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border-left: 4px solid #6a9eda;
+}
+
+.post-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.post-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.post-category {
+  background: #6a9eda;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.post-preview {
+  color: #666;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+
+.post-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.post-time {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.post-stats {
+  display: flex;
+  gap: 1rem;
+}
+
+.post-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 2rem;
+}
+
+.page-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: white;
+  border: 1px solid #e0e0e0;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+.page-btn:hover {
+  background: #f0f0f0;
+}
+
+.page-btn.active {
+  background: #6a9eda;
+  color: white;
+  border-color: #6a9eda;
+}
+
+.page-btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .category-buttons {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-    padding: 1rem 0;
-    border-bottom: 1px solid #eee;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0 2rem 0;
+  padding: 0 1rem;
 }
 
 .category-btn {
-    position: relative;
-    transition: all 0.3s ease;
-    min-width: 100px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
+  min-width: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  background-color: #fff;
 }
 
 .category-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.category-btn.btn-primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.category-btn.btn-outline-primary {
+  border: 1px solid #007bff;
+  color: #007bff;
 }
 
 .category-btn .badge {
-    border-radius: 12px;
-    font-size: 0.75rem;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.9);
 }
 
-/* 选中状态的按钮样式 */
-.btn-primary {
-    background: linear-gradient(145deg, #007bff, #0056b3);
-    border: none;
-    box-shadow: 0 4px 15px rgba(0,123,255,0.2);
+.btn-primary .badge {
+  color: #007bff;
 }
 
-.btn-outline-primary:hover {
-    background: linear-gradient(145deg, #007bff, #0056b3);
-    border: none;
-}
-
-/* 添加响应式支持 */
+/* 响应式设计 */
 @media (max-width: 768px) {
-    .category-buttons {
-        justify-content: center;
-    }
-    
-    .category-btn {
-        min-width: 80px;
-        font-size: 0.9rem;
-    }
+  .category-buttons {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .category-btn {
+    min-width: 80px;
+    font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+  }
+  
+  .post-header {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .post-category {
+    align-self: flex-start;
+  }
+
+  .post-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
 }
 </style>
