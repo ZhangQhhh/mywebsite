@@ -17,6 +17,12 @@ const USER_POSTS_API_URL = `${API_BASE_URL}/user/posts/detail/list`;
 // 七牛云上传API的URL
 const QINIU_UPLOAD_URL = `${API_BASE_URL}/image/upload`;
 const POST_UPDATE_URL = `${API_BASE_URL}/posts/update`;
+// 点赞相关API的URL
+const LIKE_API_URL = `${API_BASE_URL}/posts/like`;
+const COLLECT_API_URL = `${API_BASE_URL}/posts/collect`;
+const UNLIKE_API_URL = `${API_BASE_URL}/posts/unlike`;
+const UNCOLLECT_API_URL = `${API_BASE_URL}/posts/uncollect`;
+
 /**
  * 获取帖子列表
  * @param {Object} params - 查询参数，如页码、分类等
@@ -105,13 +111,15 @@ export function getUserPosts(params={}, userId) {
 /**
  * 获取帖子详情
  * @param {number|string} id - 帖子ID
+ * @param {number|string} userId - 用户ID
  * @returns {Promise} - 返回帖子详情的Promise
  */
-export function getPostDetail(id) {
+export function getPostDetail(id, userId = null) {
   return new Promise((resolve, reject) => {
     $.ajax({
       url: `${POST_GET_API_URL}/${id}`,
       type: 'GET',
+      data: userId ? { userId } : {},  // 只在userId存在时才添加到请求参数
       dataType: 'json',
       success: function(response) {
         resolve(response);
@@ -237,14 +245,18 @@ export function deletePost(id) {
 
 
 /**
- * 点赞帖子
+ * 切换帖子点赞状态
  * @param {string|number} postId - 帖子ID
- * @returns {Promise} 返回点赞操作的结果
+ * @param {string|number} userId - 用户ID
+ * @param {boolean} currentStatus - 当前状态(true表示已点赞/已收藏)
+ * @returns {Promise} 返回操作结果
  */
-export function likePost(postId) {
+export function toggleLike(postId, currentStatus,userId) {
+  const url = currentStatus ? `${UNLIKE_API_URL}/${postId}/${userId}` : `${LIKE_API_URL}/${postId}/${userId}`;
+  
   return new Promise((resolve, reject) => {
     $.ajax({
-      url: `${POST_GET_API_URL}/${postId}/like`,
+      url,
       type: 'POST',
       headers: {
         Authorization: "Bearer " + store.state.user.token,
@@ -255,7 +267,7 @@ export function likePost(postId) {
       error: function(xhr, status, error) {
         reject({
           code: xhr.status,
-          message: error || '点赞操作失败'
+          message: error || `${currentStatus ? '取消' : ''}点赞操作失败`
         });
       }
     });
@@ -263,14 +275,20 @@ export function likePost(postId) {
 }
 
 /**
- * 收藏帖子
+ * 切换帖子收藏状态
  * @param {string|number} postId - 帖子ID
- * @returns {Promise} 返回收藏操作的结果
+ * @param {string|number} userId - 用户ID
+ * @param {boolean} currentStatus - 当前状态(true表示已点赞/已收藏)
+ * @returns {Promise} 返回操作结果
  */
-export function collectPost(postId) {
+export function toggleCollect(postId, currentStatus,userId) {
+  const url = currentStatus 
+    ? `${UNCOLLECT_API_URL}/${postId}/${userId}` 
+    : `${COLLECT_API_URL}/${postId}/${userId}`;
+  
   return new Promise((resolve, reject) => {
     $.ajax({
-      url: `${POST_GET_API_URL}/${postId}/collect`,
+      url,
       type: 'POST',
       headers: {
         Authorization: "Bearer " + store.state.user.token,
@@ -281,11 +299,20 @@ export function collectPost(postId) {
       error: function(xhr, status, error) {
         reject({
           code: xhr.status,
-          message: error || '收藏操作失败'
+          message: error || `${currentStatus ? '取消' : ''}收藏操作失败`
         });
       }
     });
   });
+}
+
+// 为了保持向后兼容，保留原有的函数但使用新的通用函数实现
+export function likePost(postId) {
+  return toggleLike(postId, false);
+}
+
+export function collectPost(postId) {
+  return toggleCollect(postId, false);
 }
 
 

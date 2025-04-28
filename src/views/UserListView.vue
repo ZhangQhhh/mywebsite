@@ -96,7 +96,6 @@
           if (response.error_msg === 'success') {
             // 更新帖子列表和分页信息
             posts.value = response.posts || [];
-
             totalItems.value = response.total || 0;
             totalPages.value = response.totalPages || 1;
             pageSize.value = response.pageSize || 10;

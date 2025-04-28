@@ -15,8 +15,12 @@
                 {{ user.email || '暂无邮箱信息' }}
               </p>
               <p class="author-email">
+                <i class="bi bi-heart-fill"></i>
+                {{ posts.postLikes ? `${posts.postLikes}人点赞` : '还没有人点赞' }}
+              </p>
+              <p class="author-email">
                 <i class="bi bi-bookmark-fill"></i>
-                {{ posts.postCollects || '还没有人收藏' }}
+                {{ posts.postCollects ? `${posts.postCollects}人收藏` : '还没有人收藏' }}
               </p>
             </div>
           </div>
@@ -43,11 +47,15 @@
             
             <!-- 添加点赞收藏组件 -->
             <PostActions
-              :postId="postId"
-              :initialLikes="posts.postLikes || 0"
-              :initialCollects="posts.postCollects || 0"
-              :initialIsLiked="posts.isLiked || false"
-              :initialIsCollected="posts.isCollected || false"
+              :post-id="postId"
+              :initial-likes="posts.postLikes"
+              :initial-collects="posts.postCollects"
+              :initial-is-liked="posts.isLiked"
+              :initial-is-collected="posts.isCollected"
+              @update:collect-count="updateCollectCount"
+              @update:is-collected="updateIsCollected"
+              @update:like-count="updateLikeCount"
+              @update:is-liked="updateIsLiked"
             />
 
             <!-- 评论组件 -->
@@ -63,6 +71,7 @@
 
 <script>
 import { ref, onMounted } from 'vue';
+import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
 import Content from '@/components/ContentBase.vue';
 import MarkShow from '@/components/MarkShow.vue';
@@ -82,6 +91,7 @@ export default {
   },
   setup() {
     // 响应式数据
+    const store = useStore();
     const user = ref({});
     const posts = ref({});
     const markdownContent = ref('');
@@ -151,21 +161,19 @@ export default {
 
       try {
         // 调用API获取帖子详情
-        const response = await getPostDetail(postId);
+        const response = await getPostDetail(postId, store.state.user.id);
 
         if (response.error_msg === 'success') {
           // 使用获取到的帖子内容
           const post = response.post;
           posts.value = {
             ...post,
-            isLiked: post.isLiked || false,
-            isCollected: post.isCollected || false,
-            postLikes: post.postLikes || 0,
-            postCollects: post.postCollects || 0
+            isLiked: Boolean(post.isLiked),
+            isCollected: Boolean(post.isCollected),
+            postLikes: Number(post.postLikes) || 0,
+            postCollects: Number(post.postCollects) || 0
           };
           user.value = response.user;
-          console.log(user.value);
-          console.log(posts.value);
           // postCategoryName
           // 处理帖子内容中的图片URL
           markdownContent.value = processImageUrls(post.postContent) || '获取的内容为空';
@@ -240,6 +248,24 @@ export default {
       increaseViews();
     });
 
+    // 添加更新方法
+    const updateCollectCount = (newCount) => {
+      posts.value.postCollects = newCount;
+    };
+    
+    const updateIsCollected = (newStatus) => {
+      posts.value.isCollected = newStatus;
+    };
+
+    // 添加点赞更新方法
+    const updateLikeCount = (newCount) => {
+      posts.value.postLikes = newCount;
+    };
+    
+    const updateIsLiked = (newStatus) => {
+      posts.value.isLiked = newStatus;
+    };
+
     // 返回需要在模板中使用的数据和方法
     return {
       markdownContent,
@@ -253,7 +279,11 @@ export default {
       postId,
       user,
       posts,
-      navigateToUserProfile
+      navigateToUserProfile,
+      updateCollectCount,
+      updateIsCollected,
+      updateLikeCount,
+      updateIsLiked
     };
   }
 };

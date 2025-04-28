@@ -38,22 +38,27 @@
 import { ref } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
-import { likePost } from '@/api/post';
+import { toggleLike, toggleCollect } from '@/api/post';
 
 export default {
   name: 'PostActions',
+  emits: ['update:collectCount', 'update:isCollected', 'update:likeCount', 'update:isLiked'], // 添加点赞相关事件
   props: {
     postId: {
       type: [String, Number],
       required: true
     },
     initialLikes: {
-      type: Number,
-      default: 0
+      type: [String, Number],
+      default: 0,
+      // 添加类型转换
+      validator: (value) => !isNaN(Number(value))
     },
     initialCollects: {
-      type: Number,
-      default: 0
+      type: [String, Number],
+      default: 0,
+      // 添加类型转换
+      validator: (value) => !isNaN(Number(value))
     },
     initialIsLiked: {
       type: Boolean,
@@ -65,13 +70,14 @@ export default {
     }
   },
 
-  setup(props) {
+  setup(props, { emit }) { // 添加 emit 参数
     const store = useStore();
     const router = useRouter();
     const loading = ref(false);
 
-    const likeCount = ref(props.initialLikes);
-    const collectCount = ref(props.initialCollects);
+    // 确保将字符串转换为数字
+    const likeCount = ref(Number(props.initialLikes));
+    const collectCount = ref(Number(props.initialCollects));
     const isLiked = ref(props.initialIsLiked);
     const isCollected = ref(props.initialIsCollected);
 
@@ -88,13 +94,18 @@ export default {
       
       loading.value = true;
       try {
-        const response = await likePost(props.postId);
-        if (response.error_msg === 'success') {
+        const response = await toggleLike(props.postId, isLiked.value, store.state.user.id);
+        if (response.success === true) {
           isLiked.value = !isLiked.value;
-          likeCount.value += isLiked.value ? 1 : -1;
+          // 确保数字运算
+          likeCount.value = Number(likeCount.value) + (isLiked.value ? 1 : -1);
+          
+          // 发射事件通知父组件更新
+          emit('update:likeCount', likeCount.value);
+          emit('update:isLiked', isLiked.value);
         }
       } catch (error) {
-        console.error('点赞失败:', error);
+        console.error(`${isLiked.value ? '取消' : ''}点赞失败:`, error);
       } finally {
         loading.value = false;
       }
@@ -105,26 +116,33 @@ export default {
 
       loading.value = true;
       try {
-        const response = await store.dispatch('collectPost', props.postId);
-        if (response.error_msg === 'success') {
+        const response = await toggleCollect(props.postId, isCollected.value, store.state.user.id);
+        if (response.success === true) {
           isCollected.value = !isCollected.value;
-          collectCount.value += isCollected.value ? 1 : -1;
+          collectCount.value = Number(collectCount.value) + (isCollected.value ? 1 : -1);
+          
+          // 发射事件通知父组件更新
+          emit('update:collectCount', collectCount.value);
+          emit('update:isCollected', isCollected.value);
         }
       } catch (error) {
-        console.error('收藏失败:', error);
+        console.error(`${isCollected.value ? '取消' : ''}收藏失败:`, error);
       } finally {
         loading.value = false;
       }
     };
 
-    // 添加数字格式化函数
+    // 修改格式化函数，确保输入是数字
     const formatCount = (count) => {
-      if (count >= 1000000) {
-        return (count / 1000000).toFixed(1) + 'M';
-      } else if (count >= 1000) {
-        return (count / 1000).toFixed(1) + 'K';
+      const numCount = Number(count);
+      if (isNaN(numCount)) return 0;
+      
+      if (numCount >= 1000000) {
+        return (numCount / 1000000).toFixed(1) + 'M';
+      } else if (numCount >= 1000) {
+        return (numCount / 1000).toFixed(1) + 'K';
       }
-      return count;
+      return numCount;
     };
 
     return {
@@ -279,3 +297,7 @@ export default {
   }
 }
 </style>
+
+
+
+
