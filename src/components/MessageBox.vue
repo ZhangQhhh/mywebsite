@@ -1,8 +1,8 @@
 <template>
   <!-- Toast容器 -->
   <div class="toast-container position-fixed top-0 end-0 p-3">
-    <div v-for="(toast, index) in toasts" :key="index" 
-         class="toast" 
+    <div v-for="(toast, index) in toasts" :key="index"
+         class="toast"
          :class="getToastClass(toast.type)">
       <!-- Toast内容 -->
     </div>
@@ -14,13 +14,13 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="confirmModalLabel">{{ confirmTitle }}</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @click="handleCancel"></button>
         </div>
         <div class="modal-body">
           {{ confirmMessage }}
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" @click="handleCancel">取消</button>
           <button type="button" class="btn btn-primary" @click="handleConfirm">确定</button>
         </div>
       </div>
@@ -77,41 +77,126 @@ export default {
     const initModal = () => {
       const modalElement = document.getElementById('confirmModal');
       if (modalElement && window.bootstrap && window.bootstrap.Modal) {
-        confirmModal = new window.bootstrap.Modal(modalElement, {
-          backdrop: 'static',
-          keyboard: false
-        });
+        try {
+          // 移除之前可能存在的事件监听器，防止重复添加
+          modalElement.removeEventListener('hidden.bs.modal', handleModalHidden);
+
+          // 创建模态框实例
+          confirmModal = new window.bootstrap.Modal(modalElement, {
+            backdrop: 'static',
+            keyboard: false
+          });
+
+          // 添加模态框隐藏事件监听器
+          modalElement.addEventListener('hidden.bs.modal', handleModalHidden);
+        } catch (error) {
+          console.error('初始化模态框失败:', error);
+          confirmModal = null;
+        }
+      }
+    };
+
+    // 处理模态框隐藏事件
+    const handleModalHidden = () => {
+      // 如果模态框被隐藏但没有通过按钮点击（例如点击背景或按ESC键），也调用取消回调
+      if (confirmCallback.value) {
+        const callback = confirmCallback.value;
+        confirmCallback.value = null; // 防止重复调用
+
+        // 使用setTimeout确保在事件处理完成后调用回调
+        setTimeout(() => {
+          safeCallCallback(callback, false);
+        }, 0);
       }
     };
 
     // 显示确认对话框
     const showConfirm = (message, title = '确认', callback = null) => {
+      // 设置确认对话框的标题和消息
       confirmTitle.value = title;
       confirmMessage.value = message;
-      confirmCallback.value = callback;
 
+      // 保存回调函数的引用
+      // 先清空之前的回调，防止重复调用
+      confirmCallback.value = null;
+
+      // 延迟设置回调，确保之前的回调已被清理
+      setTimeout(() => {
+        confirmCallback.value = callback;
+      }, 0);
+
+      // 确保模态框已初始化
       if (!confirmModal) {
         initModal();
       }
 
+      // 显示模态框
       if (confirmModal) {
-        confirmModal.show();
+        try {
+          confirmModal.show();
+        } catch (error) {
+          console.error('显示确认对话框失败:', error);
+          // 降级处理：使用原生confirm
+          if (callback) {
+            const result = window.confirm(message);
+            safeCallCallback(callback, result);
+          }
+        }
       } else {
         // 降级处理：使用原生confirm
-        const result = window.confirm(message);
-        if (callback) callback(result);
+        if (callback) {
+          const result = window.confirm(message);
+          safeCallCallback(callback, result);
+        }
+      }
+    };
+
+    // 安全地调用回调函数
+    const safeCallCallback = (callback, result) => {
+      if (callback && typeof callback === 'function') {
+        try {
+          callback(result);
+        } catch (error) {
+          console.error('确认回调执行错误:', error);
+        }
       }
     };
 
     // 处理确认按钮点击
     const handleConfirm = () => {
+      // 保存回调的引用，然后清空存储的回调
+      const callback = confirmCallback.value;
+      confirmCallback.value = null;
+
+      // 隐藏模态框
       if (confirmModal) {
-        confirmModal.hide();
+        try {
+          confirmModal.hide();
+        } catch (error) {
+          console.error('隐藏确认对话框失败:', error);
+        }
       }
-      
-      if (confirmCallback.value) {
+
+      // 安全地调用回调
+      if (callback) {
+        // 使用setTimeout确保模态框已完全关闭
         setTimeout(() => {
-          confirmCallback.value(true);
+          safeCallCallback(callback, true);
+        }, 100);
+      }
+    };
+
+    // 处理取消按钮点击
+    const handleCancel = () => {
+      // 保存回调的引用，然后清空存储的回调
+      const callback = confirmCallback.value;
+      confirmCallback.value = null;
+
+      // 安全地调用回调
+      if (callback) {
+        // 使用setTimeout确保模态框已完全关闭
+        setTimeout(() => {
+          safeCallCallback(callback, false);
         }, 100);
       }
     };
@@ -126,11 +211,14 @@ export default {
       confirmMessage,
       showConfirm,
       handleConfirm,
+      handleCancel,
+      handleModalHidden,
       showSuccess,
       showError,
       showWarning,
       showInfo,
-      getToastClass
+      getToastClass,
+      safeCallCallback
     };
   }
 };

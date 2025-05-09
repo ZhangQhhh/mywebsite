@@ -115,11 +115,39 @@ export const showConfirm = (message, title, callback) => {
     title = '确认';
   }
 
-  // 调用实例的showConfirm方法
+  // 调用实例的showConfirm方法，如果失败则降级使用原生confirm
   const instance = getInstance();
   if (instance && typeof instance.showConfirm === 'function') {
-    instance.showConfirm(message, title, (confirmed) => {
-      // 确保callback存在且是函数才调用
+    try {
+      // 使用一个包装回调函数来处理错误
+      const safeCallback = (confirmed) => {
+        // 确保callback存在且是函数才调用
+        if (callback && typeof callback === 'function') {
+          try {
+            callback(confirmed);
+          } catch (error) {
+            console.error('确认回调执行错误:', error);
+          }
+        }
+      };
+
+      // 调用实例的showConfirm方法，传入安全的回调函数
+      instance.showConfirm(message, title, safeCallback);
+    } catch (error) {
+      console.error('显示确认对话框时发生错误:', error);
+      // 出错时也要确保回调被调用，传入false表示取消
+      if (callback && typeof callback === 'function') {
+        try {
+          callback(false);
+        } catch (callbackError) {
+          console.error('确认回调执行错误:', callbackError);
+        }
+      }
+    }
+  } else {
+    // 降级使用原生confirm
+    try {
+      const confirmed = window.confirm(message);
       if (callback && typeof callback === 'function') {
         try {
           callback(confirmed);
@@ -127,19 +155,15 @@ export const showConfirm = (message, title, callback) => {
           console.error('确认回调执行错误:', error);
         }
       }
-    });
-  } else {
-    // 降级使用原生confirm
-    try {
-      const confirmed = window.confirm(message);
-      if (callback && typeof callback === 'function') {
-        callback(confirmed);
-      }
     } catch (e) {
       console.error('显示确认对话框失败:', e);
       // 确保在出错时也调用回调，传入false
       if (callback && typeof callback === 'function') {
-        callback(false);
+        try {
+          callback(false);
+        } catch (callbackError) {
+          console.error('确认回调执行错误:', callbackError);
+        }
       }
     }
   }

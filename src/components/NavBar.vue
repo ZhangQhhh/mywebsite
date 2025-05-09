@@ -20,7 +20,7 @@
           </li>
 
           <li class="nav-item">
-            <router-link class="nav-link" :to="{ name: 'userprofile' }">我的笔记</router-link>
+            <router-link class="nav-link" :to="{ name: 'userprofile' }">个人设置</router-link>
           </li>
         </ul>
 
@@ -28,7 +28,19 @@
         <ul class="navbar-nav " v-if="$store.state.user.is_login">
 
           <li class="nav-item">
-            <router-link class="nav-link" :to="{name: 'UserDesc',params:{userId:$store.state.user.id}}" >{{ $store.state.user.username }}</router-link>
+            <router-link 
+              class="nav-link username-link user-profile-entry" 
+              :to="{name: 'UserDesc',params:{userId:$store.state.user.id}}" 
+              data-bs-toggle="tooltip" 
+              data-bs-placement="bottom" 
+              title="点击进入个人主页"
+            >
+              <img :src="$store.state.user.photo || require('../assets/mylogo.png')" alt="头像" class="navbar-avatar me-2" />
+              <span class="username-text">{{ $store.state.user.username }}</span>
+              <span class="profile-link-icon ms-2">
+                <i class="bi bi-box-arrow-up-right"></i>
+              </span>
+            </router-link>
           </li>
           <!-- <li class="nav-item">
             <router-link class="nav-link" :to="{ name: 'rigister' }">注册</router-link>
@@ -91,8 +103,6 @@
 
 <script>
 import {useStore} from 'vuex';
-// getCurrentInstance
-import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {showAlert } from '@/utils';
 import { UToast } from 'undraw-ui'
@@ -102,7 +112,6 @@ export default {
   setup(){
     const store = useStore();
     const router = useRouter();
-    // const { proxy } = getCurrentInstance();
     
     const logout = () => {
       store.dispatch("logout");
@@ -110,28 +119,13 @@ export default {
     
     // 添加处理AI助手点击的方法
     const handleAIClick = () => {
-      const isVip = store.state.user.is_vip === '1' || 
-                    store.state.user.is_vip === 1 || 
-                    store.state.user.is_vip === true;
-      
+      const isVip = store.state.user.vip === '1' || 
+                    store.state.user.vip === 1 || 
+                    store.state.user.vip === true;
       if (isVip) {
-        router.push({name: 'ChatView'});
+        router.push('/ai');
       } else {
         try {
-          // if (proxy && proxy.$confirm) {
-          //   proxy.$confirm(
-          //     '该功能仅对VIP会员开放，是否立即升级为VIP会员？', 
-          //     '友情提示', 
-          //     (confirmed) => {
-          //       if (confirmed) {
-          //         router.push({name: 'userprofile'});
-          //       }
-          //       // 移除 else 块，不需要对取消操作做特殊处理
-          //     }
-          //   );
-          // } else {
-          //   showAlert("该功能仅对VIP会员开放！请升级为VIP会员后再访问。");
-          // }
           UToast({ message: '该功能仅对VIP会员开放！请升级为VIP会员后再访问。', type: 'error',duration:'3000' })
         } catch (error) {
           console.error('显示确认对话框时发生错误:', error);
@@ -140,16 +134,15 @@ export default {
       }
     }
 
-    // 在组件挂载后确保Bootstrap下拉菜单正常工作
-    onMounted(() => {
-      // Bootstrap已在main.js中全局导入，这里不需要重复导入
-      // 只需确保下拉菜单功能正常工作
-    });
-
     return {
       logout,
       handleAIClick
     }
+  },
+  mounted() {
+    // 初始化所有工具提示
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    [...tooltipTriggerList].map(tooltipTriggerEl => new window.bootstrap.Tooltip(tooltipTriggerEl));
   }
 }
 
@@ -170,5 +163,76 @@ export default {
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
+}
+
+.username-link {
+  display: inline-flex;
+  align-items: center;
+  transition: color 0.2s ease;
+}
+
+.username-link:hover {
+  color: #007bff;
+}
+
+/* 添加一个微小的动画效果 */
+.username-link:hover .bi-box-arrow-up-right {
+  transform: translateX(2px) translateY(-2px);
+}
+
+.bi-box-arrow-up-right {
+  transition: transform 0.2s ease;
+}
+
+.navbar-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.10);
+  border: 2px solid #e0e7ff;
+  background: #f3f4f6;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.user-profile-entry {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.9rem 0.2rem 0.5rem;
+  border-radius: 2rem;
+  transition: background 0.2s, box-shadow 0.2s;
+  position: relative;
+}
+.user-profile-entry:hover {
+  background: linear-gradient(90deg, #e0e7ff 0%, #f3f4f6 100%);
+  box-shadow: 0 4px 16px rgba(99,102,241,0.10);
+}
+.username-text {
+  font-weight: 600;
+  color: #3730a3;
+  font-size: 1.08rem;
+  letter-spacing: 0.5px;
+  transition: color 0.2s;
+}
+.user-profile-entry:hover .username-text {
+  color: #4f46e5;
+}
+.profile-link-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #e0e7ff;
+  color: #6366f1;
+  font-size: 1.1rem;
+  margin-left: 0.2rem;
+  transition: background 0.2s, color 0.2s, transform 0.2s;
+}
+.user-profile-entry:hover .profile-link-icon {
+  background: #6366f1;
+  color: #fff;
+  transform: translateX(2px) scale(1.08);
 }
 </style>

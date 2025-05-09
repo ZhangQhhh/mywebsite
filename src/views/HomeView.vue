@@ -3,7 +3,7 @@
     <!-- 艺术感欢迎区域 -->
     <div class="hero-section">
       <div class="hero-content">
-        <h1>研究星球</h1>
+      <h1>研究星球</h1>
         <div class="tagline">学术探索的艺术</div>
         <div class="hero-actions">
           <router-link :to="{name: 'userlist'}" class="action-btn primary">探索社区</router-link>

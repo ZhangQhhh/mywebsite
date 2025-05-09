@@ -114,7 +114,6 @@ export function deleteComment(commentId) {
       headers: {
         Authorization: "Bearer " + store.state.user.token
       },
-      xhrFields: { withCredentials: true },
       success: function(response) {
         console.log(`删除评论API响应:`, response);
         resolve(response);

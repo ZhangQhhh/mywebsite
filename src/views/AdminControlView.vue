@@ -6,13 +6,7 @@
       <!-- 搜索和过滤区域 -->
       <div class="search-filter-section">
         <div class="input-group mb-3">
-          <input
-            type="text"
-            class="form-control"
-            placeholder="搜索用户名"
-            v-model="searchQuery"
-            @input="handleSearch"
-          >
+          <input type="text" class="form-control" placeholder="搜索用户名" v-model="searchQuery" @input="handleSearch">
           <div class="input-group-append">
             <button class="btn btn-primary" type="button" @click="handleSearch">搜索</button>
           </div>
@@ -47,7 +41,7 @@
             <tr v-else-if="filteredUsers.length === 0">
               <td colspan="5" class="text-center">没有找到用户</td>
             </tr>
-            <tr v-for="user in filteredUsers" :key="user.id" :class="{'table-danger': user.status === '0'}">
+            <tr v-for="user in filteredUsers" :key="user.id" :class="{ 'table-danger': user.status === '0' }">
               <td>{{ user.id }}</td>
               <td>
                 <div class="user-info">
@@ -63,11 +57,8 @@
               </td>
               <td>
                 <div class="btn-group">
-                  <button
-                    class="btn btn-sm"
-                    :class="String(user.status) === '0' ? 'btn-success' : 'btn-danger'"
-                    @click="(event) => toggleUserBan(user, event)"
-                  >
+                  <button class="btn btn-sm" :class="String(user.status) === '0' ? 'btn-success' : 'btn-danger'"
+                    @click="(event) => toggleUserBan(user, event)">
                     <!-- 状态为 '0' 表示已封禁，显示解除封禁按钮 -->
                     <!-- 状态为 '1' 表示正常，显示封禁用户按钮 -->
                     {{ String(user.status) === '0' ? '解除封禁' : '封禁用户' }}
@@ -88,12 +79,7 @@
             <li class="page-item" :class="{ disabled: currentPage === 1 }">
               <a class="page-link" href="#" @click.prevent="changePage(currentPage - 1)">&laquo;</a>
             </li>
-            <li
-              v-for="page in displayedPages"
-              :key="page"
-              class="page-item"
-              :class="{ active: page === currentPage }"
-            >
+            <li v-for="page in displayedPages" :key="page" class="page-item" :class="{ active: page === currentPage }">
               <a class="page-link" href="#" @click.prevent="changePage(page)">{{ page }}</a>
             </li>
             <li class="page-item" :class="{ disabled: currentPage === totalPages }">
@@ -105,7 +91,8 @@
     </div>
 
     <!-- 重置密码模态框 -->
-    <div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+    <div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel"
+      aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
@@ -176,10 +163,8 @@
                   <li class="page-item" :class="{ disabled: postsCurrentPage === 1 }">
                     <a class="page-link" href="#" @click.prevent="changePostsPage(postsCurrentPage - 1)">上一页</a>
                   </li>
-                  <li v-for="page in postsDisplayedPages"
-                      :key="page"
-                      class="page-item"
-                      :class="{ active: page === postsCurrentPage }">
+                  <li v-for="page in postsDisplayedPages" :key="page" class="page-item"
+                    :class="{ active: page === postsCurrentPage }">
                     <a class="page-link" href="#" @click.prevent="changePostsPage(page)">{{ page }}</a>
                   </li>
                   <li class="page-item" :class="{ disabled: postsCurrentPage === postsTotalPages }">
@@ -194,7 +179,8 @@
     </div>
 
     <!-- 删除确认模态框 -->
-    <div class="modal fade" id="deletePostConfirmModal" tabindex="-1" aria-labelledby="deletePostConfirmModalLabel" aria-hidden="true">
+    <div class="modal fade" id="deletePostConfirmModal" tabindex="-1" aria-labelledby="deletePostConfirmModalLabel"
+      aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
@@ -223,6 +209,7 @@ import { useRouter } from 'vue-router';
 import { deleteUserPost } from '@/api/profile';
 import { getUserList, resetUserPassword, banUser, unbanUser } from '@/api/admin';
 import { getUserPosts } from '@/api/post';
+import { ElMessage, ElMessageBox } from 'element-plus';
 export default {
   name: 'AdminControlView',
   components: {
@@ -240,23 +227,26 @@ export default {
     // 获取应用实例，用于访问全局属性
     const { proxy } = getCurrentInstance();
 
-// 计算属性：显示哪些页码按钮
-const postsDisplayedPages = computed(() => {
-    const maxPagesToShow = 5;
-    const pages = [];
-    let startPage = Math.max(1, postsCurrentPage.value - Math.floor(maxPagesToShow / 2));
-    let endPage = Math.min(postsTotalPages.value, startPage + maxPagesToShow - 1);
 
-    if (endPage - startPage + 1 < maxPagesToShow) {
-      startPage = Math.max(1, endPage - maxPagesToShow + 1);
-    }
 
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
 
-    return pages;
-});
+    // 计算属性：显示哪些页码按钮
+    const postsDisplayedPages = computed(() => {
+      const maxPagesToShow = 5;
+      const pages = [];
+      let startPage = Math.max(1, postsCurrentPage.value - Math.floor(maxPagesToShow / 2));
+      let endPage = Math.min(postsTotalPages.value, startPage + maxPagesToShow - 1);
+
+      if (endPage - startPage + 1 < maxPagesToShow) {
+        startPage = Math.max(1, endPage - maxPagesToShow + 1);
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+
+      return pages;
+    });
 
 
 
@@ -428,10 +418,10 @@ const postsDisplayedPages = computed(() => {
     };
 
     // 封禁/解封回调函数
-    const banCallback = (confirmed, user, buttonElement) => {
-      // 传递按钮元素，便于在操作完成后更新按钮状态
-      handleBanConfirmation(confirmed, user, buttonElement);
-    };
+    // const banCallback = (confirmed, user, buttonElement) => {
+    //   // 传递按钮元素，便于在操作完成后更新按钮状态
+    //   handleBanConfirmation(confirmed, user, buttonElement);
+    // };
 
     // 封禁/解封用户
     const toggleUserBan = (user, event) => {
@@ -444,48 +434,39 @@ const postsDisplayedPages = computed(() => {
       // 防止重复点击
       const banButton = event?.target;
       if (banButton && banButton.disabled) {
-        console.log('按钮已禁用，防止重复点击');
         return;
       }
 
       // 禁用按钮防止重复点击
       if (banButton) {
         banButton.disabled = true;
-        // 存储按钮引用，便于在操作完成后立即更新按钮状态
-        const buttonRef = banButton;
-
-        // 设置一个安全计时器，确保按钮最终会被启用
-        setTimeout(() => {
-          buttonRef.disabled = false;
-        }, 3000); // 3秒后恢复按钮，时间稍长一点以确保操作完成
       }
 
-      const confirmMessage = `确定要${user.status === '0' ? '解除封禁' : '封禁'}用户 ${user.username}？`;
-
-      // 检查proxy.$confirm是否存在
-      if (!proxy.$confirm) {
-        console.error('proxy.$confirm方法不存在，使用原生confirm');
-        const confirmed = window.confirm(confirmMessage);
-        handleBanConfirmation(confirmed, user, banButton);
-        return;
-      }
-
-      // 使用自定义确认对话框
-      try {
-        console.log('尝试调用自定义确认对话框');
-
-        // 打印回调函数信息以确认其有效
-        console.log('回调函数类型:', typeof banCallback);
-
-        // 调用确认对话框，确保正确传递参数
-        // 使用绑定的回调函数，确保 user 参数和按钮元素传递正确
-        proxy.$confirm(confirmMessage, '确认操作', (confirmed) => banCallback(confirmed, user, banButton));
-      } catch (error) {
-        console.error('调用自定义确认对话框出错:', error);
-        // 出错时回退到原生对话框
-        const confirmed = window.confirm(confirmMessage);
-        handleBanConfirmation(confirmed, user, banButton);
-      }
+      const action = user.status === '0' ? '解除封禁' : '封禁';
+      
+      ElMessageBox.confirm(
+        `确定要${action}用户 ${user.username}？`,
+        '警告',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+        }
+      )
+        .then(() => {
+          // 用户点击确定按钮
+          handleBanConfirmation(true, user, banButton);
+        })
+        .catch(() => {
+          // 用户取消操作，重新启用按钮
+          if (banButton) {
+            banButton.disabled = false;
+          }
+          ElMessage({
+            type: 'info',
+            message: '操作已取消'
+          });
+        });
     };
 
     // 处理封禁确认后的操作
@@ -497,7 +478,7 @@ const postsDisplayedPages = computed(() => {
         const apiCall = isCurrentlyBanned ? unbanUser : banUser;
 
         const resp = await apiCall(user.id);
-        
+        console.log(resp)
         // 修改判断条件，检查 success 字段
         if (resp.success === true || resp.error_msg.includes('已经封禁')) {
           await loadUsers();
@@ -529,7 +510,7 @@ const postsDisplayedPages = computed(() => {
       newPassword.value = '';
       confirmPassword.value = '';
       passwordError.value = '';
-       // 使用全局的 bootstrap
+      // 使用全局的 bootstrap
       const modal = new window.bootstrap.Modal(document.getElementById('resetPasswordModal'));
       modal.show();
     };
@@ -643,36 +624,49 @@ const postsDisplayedPages = computed(() => {
     const confirmDeletePost = () => {
       if (!postToDelete.value) return;
 
-      const postId = postToDelete.value.postId;
-      deleteUserPost(postId)
-        .then(response => {
-          if (response.error_msg === 'success') {
-            // 关闭确认模态框
-            const modalElement = document.getElementById('deletePostConfirmModal');
-            if (modalElement && window.bootstrap && window.bootstrap.Modal) {
-              const modal = new window.bootstrap.Modal(modalElement);
-              modal.hide();
-              // 移除模态框背景
-              const backdrop = document.querySelector('.modal-backdrop');
-              if (backdrop) {
-                backdrop.remove();
+      ElMessageBox.confirm(
+        '确定要删除这篇帖子吗？此操作不可撤销。',
+        '警告',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+        }
+      )
+        .then(() => {
+          const postId = postToDelete.value.postId;
+          deleteUserPost(postId)
+            .then(response => {
+              if (response.error_msg === 'success') {
+                ElMessage({
+                  type: 'success',
+                  message: '删除成功'
+                });
+                // 重新加载当前页的帖子
+                viewUserPosts(selectedUser.value, postsCurrentPage.value);
+              } else {
+                ElMessage({
+                  type: 'error',
+                  message: response.error_msg || '删除失败'
+                });
               }
-              // 移除模态框相关类
-              document.body.classList.remove('modal-open');
-            }
-
-            proxy.$message.success('删除成功');
-            // 重新加载当前页的帖子
-            viewUserPosts(selectedUser.value, postsCurrentPage.value);
-          } else {
-            proxy.$message.error(response.error_msg || '删除失败');
-          }
+            })
+            .catch(error => {
+              console.error('删除帖子失败:', error);
+              ElMessage({
+                type: 'error',
+                message: error.message || '删除失败'
+              });
+            })
+            .finally(() => {
+              postToDelete.value = null; // 重置删除状态
+            });
         })
-        .catch(error => {
-          console.error('删除帖子失败:', error);
-          proxy.$message.error(error.message || '删除失败');
-        })
-        .finally(() => {
+        .catch(() => {
+          ElMessage({
+            type: 'info',
+            message: '删除已取消'
+          });
           postToDelete.value = null; // 重置删除状态
         });
     };
@@ -702,34 +696,46 @@ const postsDisplayedPages = computed(() => {
 
     // 删除帖子
     const deletePost = (post) => {
-      if (!proxy || !proxy.$confirm) {
-        console.error('proxy.$confirm 未定义');
-        return;
-      }
-
-      // 使用自定义确认对话框
-      proxy.$confirm(
+      ElMessageBox.confirm(
         '确定要删除这篇帖子吗？此操作不可撤销。',
-        '删除确认',
-        (confirmed) => {
-          if (confirmed) {
-            deleteUserPost(post.postId)
-              .then(response => {
-                if (response.error_msg === 'success') {
-                  proxy.$message.success('删除成功');
-                  // 重新加载当前页的帖子
-                  viewUserPosts(selectedUser.value, postsCurrentPage.value);
-                } else {
-                  proxy.$message.error(response.error_msg || '删除失败');
-                }
-              })
-              .catch(error => {
-                console.error('删除帖子失败:', error);
-                proxy.$message.error(error.message || '删除失败');
-              });
-          }
+        '警告',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
         }
-      );
+      )
+        .then(() => {
+          deleteUserPost(post.postId)
+            .then(response => {
+              if (response.error_msg === 'success') {
+                ElMessage({
+                  type: 'success',
+                  message: '删除成功'
+                });
+                // 重新加载当前页的帖子
+                viewUserPosts(selectedUser.value, postsCurrentPage.value);
+              } else {
+                ElMessage({
+                  type: 'error',
+                  message: response.error_msg || '删除失败'
+                });
+              }
+            })
+            .catch(error => {
+              console.error('删除帖子失败:', error);
+              ElMessage({
+                type: 'error',
+                message: error.message || '删除失败'
+              });
+            });
+        })
+        .catch(() => {
+          ElMessage({
+            type: 'info',
+            message: '删除已取消'
+          });
+        });
     };
 
     // 简单的监听器

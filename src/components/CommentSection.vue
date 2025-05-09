@@ -3,13 +3,12 @@
     <!-- 评论输入和列表容器 -->
     <div class="comment-input-container">
       <u-comment-scroll :disable="scrollDisabled" @more="loadMore">
-        <u-comment 
-          :config="commentConfig" 
-          @submit="submitComment"
-          @reply="handleReply"
-          @like="handleLike"
-          @mention-search="handleMentionSearch"
-        />
+        <u-comment :config="commentConfig" @submit="submitComment" @reply="handleReply" @like="handleLike"
+          @mention-search="handleMentionSearch">
+          <template #operate="scope">
+            <OperateTool :comment="scope"  :canRemove="removeCheck(scope)" @remove="handleRemove(scope.id) " />
+          </template>
+        </u-comment>
         <!-- 添加加载状态提示 -->
         <div v-if="isLoading" class="loading-state">
           <span>加载中...</span>
@@ -17,7 +16,7 @@
       </u-comment-scroll>
     </div>
 
- 
+
   </div>
 </template>
 
@@ -25,10 +24,12 @@
 import { ref, reactive, onMounted, onBeforeUnmount, getCurrentInstance, watch } from 'vue';
 import { useStore } from 'vuex';
 import { commentApi } from '@/api/comment';
+import OperateTool from './OperateTool.vue';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
 import emoji from '@/assets/emoji.ts';
+import { UToast } from 'undraw-ui'
 
 
 // 确保已经在 main.js 中全局引入了 undraw-ui
@@ -40,6 +41,9 @@ dayjs.locale('zh-cn');
 
 export default {
   name: 'CommentSection',
+  components: {
+    OperateTool
+  },
   props: {
     contentId: {
       type: [String, Number],
@@ -53,7 +57,7 @@ export default {
   setup(props) {
     const store = useStore();
     const { proxy } = getCurrentInstance();
-    
+
     // 添加滚动加载相关的状态
     const scrollDisabled = ref(false);
     const currentPage = ref(1);
@@ -74,12 +78,13 @@ export default {
       relativeTime: true,  // 改为 true，启用相对时间
       showLevel: false,
       showHomeLink: true,
-      showLikes: true
+      showLikes: true,
+
     });
     // 添加加载更多的处理函数
     const loadMore = async () => {
       if (isLoading.value) return;
-      
+
       try {
         isLoading.value = true;
         const response = await commentApi.getCommentList({
@@ -204,7 +209,7 @@ export default {
         proxy.$message.error('请先登录');
         return;
       }
-      
+
       try {
         const response = await commentApi.addComment({
           contentId: props.contentId,
@@ -238,7 +243,7 @@ export default {
             reply: null
           };
           finish(commentData);
-          
+
           proxy.$message.success('评论发表成功');
           await loadMore();
         } else {
@@ -261,6 +266,13 @@ export default {
       }
     }, { deep: true });
 
+    const removeCheck = (comment) => {  // 添加删除权限检查函数
+      // 检查是否登录
+      if (!store.state.user?.id) return false;
+      // 检查是否是评论作者或管理员
+      return comment.uid === String(store.state.user.id) ||
+        store.state.user.role === 'ADMIN';
+    };
     // 处理点赞/取消点赞
     const handleLike = async (id, finish) => {
       console.log('点赞:', id);
@@ -344,7 +356,7 @@ export default {
               uid: replyTo.uid
             }
           });
-          
+
           proxy.$message.success('回复发表成功');
           await loadMore();
         } else {
@@ -381,11 +393,36 @@ export default {
               likes: reply.likesCount || 0
             }))
           };
-          
+
           finish(replyData);
         }
       } catch (err) {
         console.error('加载回复列表失败:', err);
+      }
+    };
+
+    // 添加删除评论处理函数
+    const handleRemove = async (id) => {
+      if (!store.state.user.token) {
+        UToast({ type: 'error', message: '请先登录' });
+        return;
+      }
+
+      try {
+        const response = await commentApi.deleteComment(id);
+        if (response.success === true) {
+          UToast({ type: 'success', message: '评论已删除' });
+          // 重新加载评论列表
+          currentPage.value = 1;
+          scrollDisabled.value = false;
+          commentConfig.comments = [];
+          await loadMore();
+        } else {
+          throw new Error(response.error_msg || '删除失败');
+        }
+      } catch (err) {
+        console.error('删除评论失败:', err);
+        UToast({ type: 'error', message: err.message || '删除评论失败' });
       }
     };
 
@@ -398,7 +435,9 @@ export default {
       handleMentionSearch,
       handleLike,
       handleReply,
-      handleReplyPage
+      handleReplyPage,
+      handleRemove,
+      removeCheck  // 暴露 removeCheck 函数
     };
   }
 }
@@ -535,38 +574,4 @@ export default {
     transform: rotate(360deg);
   }
 }
-
-
 </style>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

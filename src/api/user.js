@@ -8,12 +8,85 @@ import $ from 'jquery';
 import store from '@/store';
 // 导入API基础URL
 import { API_BASE_URL } from '@/config/api';
+import { API_ENDPOINTS } from '@/config/api';
 
 // API端点URL
 const USER_INFO_URL = `${API_BASE_URL}/user/info`;
 const FOLLOW_USER_URL = `${API_BASE_URL}/user/follow`;
 const UNFOLLOW_USER_URL = `${API_BASE_URL}/user/unfollow`;
 const USER_STATS_URL = `${API_BASE_URL}/user/stats`;
+const FOLLOWERS = API_ENDPOINTS.FOLLOWS.FOLLOWERS;
+const FOLLOWINGS = API_ENDPOINTS.FOLLOWS.FOLLOWINGS;
+
+/**
+ * 获取用户粉丝列表
+ * @param {string|number} userId 
+ * @returns 
+ */
+export function getFollowers(userId) {
+  return new Promise((resolve, reject) => {
+    $.ajax({
+      url: `${FOLLOWERS}/${userId}`,
+      type: 'GET',
+      headers: {
+        Authorization: "Bearer " + store.state.user.token,
+      },
+      success: function(response) {
+        if (response.success === true) {
+          resolve(response);
+        } else {
+          reject({
+            code: 400,
+            message: response.error_msg || '获取粉丝列表失败'
+          });
+        }
+      },
+      error: function(xhr, status, error) {
+        console.error('获取粉丝列表失败:', error);
+        reject({
+          code: xhr.status,
+          message: error || '获取粉丝列表失败'
+        });
+      }
+    });
+  });
+}
+/**
+ * 获取关注列表
+ * @param {string|number} userId 
+ * @returns 
+ */
+export function getFollowings(userId) {
+  return new Promise((resolve, reject) => {
+    $.ajax({
+      url: `${FOLLOWINGS}/${userId}`,
+      type: 'GET',
+      headers: {
+        Authorization: "Bearer " + store.state.user.token,
+      },
+      success: function(response) {
+        if (response.success === true) {
+          resolve(response);
+        } else {
+          reject({
+            code: 400,  // 400表示客户端错误
+            message: response.error_msg || '获取关注列表失败'
+          });
+        }
+      },
+      error: function(xhr, status, error) {
+        console.error('获取关注列表失败:', error);
+        reject({
+          code: xhr.status,
+          message: error || '获取关注列表失败'
+        });
+      }
+    });
+  });
+}
+
+
+
 
 /**
  * 获取用户信息

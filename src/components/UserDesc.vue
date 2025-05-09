@@ -54,11 +54,11 @@
             <span class="stat-label">发帖数</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">{{ userStats.followCount || 0 }}</span>
+            <span class="stat-value" @click="getFollowingsNow">{{ userStats.followCount || 0 }}</span>
             <span class="stat-label">关注数</span>
           </div>
           <div class="stat-item">
-            <span class="stat-value">{{ userStats.followerCount || 0 }}</span>
+            <span class="stat-value" @click="getFollowersNow">{{ userStats.followerCount || 0 }}</span>
             <span class="stat-label">粉丝数</span>
           </div>
         </div>
@@ -84,23 +84,17 @@
 
         <!-- 在这里添加分类按钮组 -->
         <div class="category-buttons">
-          <button 
-            v-for="category in categories" 
-            :key="category.id"
-            class="btn category-btn"
-            :class="[
-              selectedCategory === category.id 
-                ? 'btn-primary' 
-                : 'btn-outline-primary'
-            ]"
-            @click="changeCategory(category.id)"
-          >
+          <button v-for="category in categories" :key="category.id" class="btn category-btn" :class="[
+            selectedCategory === category.id
+              ? 'btn-primary'
+              : 'btn-outline-primary'
+          ]" @click="changeCategory(category.id)">
             {{ category.name }}
             <span class="badge bg-light text-primary ms-2">
-              {{ 
-                category.id === 'all' 
-                  ? posts.length 
-                  : posts.filter(p => p.postCategoryName === category.id).length 
+              {{
+                category.id === 'all'
+                  ? posts.length
+                  : posts.filter(p => p.postCategoryName === category.id).length
               }}
             </span>
           </button>
@@ -224,6 +218,29 @@ export default {
     const totalItems = ref(0);
     const totalPages = ref(1);
 
+    // 查看用户粉丝列表
+    const getFollowersNow = async () => {
+      // 直接跳转到粉丝列表页面，让该页面自己获取数据
+      router.push({
+        name: 'FollowerOrFollowing',
+        params: { userId: user.id },
+        query: { view: 'followers' }
+      });
+      console.log("点击查看用户粉丝列表");
+    };
+
+    // 查看用户关注列表
+    const getFollowingsNow = async () => {
+      // 直接跳转到关注列表页面，让该页面自己获取数据
+      router.push({
+        name: 'FollowerOrFollowing',
+        params: { userId: user.id },
+        query: { view: 'followings' }
+      });
+      console.log("点击查看用户关注列表");
+    };
+
+
     // 检查是否为当前登录用户查看自己的资料
     const isCurrentUser = computed(() => {
       return user.id === store.state.user.id;
@@ -299,6 +316,8 @@ export default {
           user.status = store.state.user.status;
           user.vip = store.state.user.vip;
           user.email = store.state.user.email;
+          user.bio = store.state.user.bio;
+          user.location = store.state.user.location;
         } else {
           // 获取目标用户信息
           const userInfoResponse = await getUserInfo(targetUserId);
@@ -318,7 +337,7 @@ export default {
           }
         }
 
-        //获取用户统计信息（TODO 记得实现）
+        //获取用户统计信息
         const statsResponse = await getUserStats(targetUserId);
         if (statsResponse.success === true) {
           Object.assign(userStats, statsResponse.data);
@@ -416,7 +435,7 @@ export default {
 
     // 发送消息
     const sendMessage = () => {
-      UToast({ message: '改功能暂未上线，敬请期待', type: 'warning', })
+      UToast({ message: '该功能暂未上线，敬请期待', type: 'warning', })
       // 跳转到消息页或显示消息对话框
       // router.push(`/message?userId=${user.id}`);
     };
@@ -482,6 +501,8 @@ export default {
       formatDate,
       getContentPreview,
       changeCategory,
+      getFollowersNow,
+      getFollowingsNow,
     };
   }
 };

@@ -14,6 +14,7 @@ export const API_ENDPOINTS = {
     INFO: `${API_BASE_URL}/user/account/info/`,
     UPDATE_PASSWORD: `${API_BASE_URL}/user/updatePassword`,
     UPDATE_AVATAR: `${API_BASE_URL}/user/updateAvatar`,
+    UPDATE_INFO: `${API_BASE_URL}/user/updateInfo`,
     STATS: `${API_BASE_URL}/user/stats`,
     FOLLOW: `${API_BASE_URL}/user/follow`,
     UNFOLLOW: `${API_BASE_URL}/user/unfollow`,
@@ -34,6 +35,13 @@ export const API_ENDPOINTS = {
     LIKE: `${API_BASE_URL}/comments/like`,
     UNLIKE: `${API_BASE_URL}/comments/unlike`,
   },
+  FOLLOWS:{
+    BASE: `${API_BASE_URL}/follow`,
+    FOLLOWERS: `${API_BASE_URL}/follow/select/followers`,
+    FOLLOWINGS: `${API_BASE_URL}/follow/select/followings`,
+  }
 };
+
+
 
 

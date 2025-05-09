@@ -1,10 +1,11 @@
 <template>
   <div class="card settings-card">
+    <div class="card-header bg-gradient">
+      <h3 class="mb-0 card-title">用户设置</h3>
+    </div>
     <div class="card-body">
-      <h3 class="mb-4">用户设置</h3>
-      
       <!-- 选项卡导航 -->
-      <ul class="nav nav-tabs" id="settingsTabs" role="tablist">
+      <ul class="nav nav-pills nav-fill mb-4" id="settingsTabs" role="tablist">
         <li class="nav-item" role="presentation">
           <button class="nav-link" id="password-tab" data-bs-toggle="tab" data-bs-target="#password" 
                   type="button" role="tab" aria-controls="password" aria-selected="false">
@@ -26,7 +27,7 @@
       </ul>
       
       <!-- 选项卡内容 -->
-      <div class="tab-content p-3 border border-top-0 rounded-bottom" id="settingsTabsContent">
+      <div class="tab-content p-3 card-content-wrapper" id="settingsTabsContent">
         <!-- 修改密码 -->
         <div class="tab-pane fade" id="password" role="tabpanel" aria-labelledby="password-tab">
           <form @submit.prevent="updatePassword" class="mt-3">
@@ -82,14 +83,16 @@
         <!-- 更新头像 -->
         <div class="tab-pane fade show active" id="avatar" role="tabpanel" aria-labelledby="avatar-tab">
           <div class="mt-3 text-center">
-            <div class="avatar-preview mb-3">
-              <img :src="avatarPreview || user.photo || require('@/assets/mylogo.png')" alt="头像预览" class="img-thumbnail">
+            <div class="avatar-preview mb-4">
+              <img :src="avatarPreview || user.photo || require('@/assets/mylogo.png')" alt="头像预览" class="user-avatar">
             </div>
             
-            <div class="mb-3">
+            <div class="mb-4 upload-container">
               <label for="avatarUpload" class="form-label">选择新头像</label>
-              <input class="form-control" type="file" id="avatarUpload" @change="handleAvatarChange" accept="image/*">
-              <div class="form-text">支持JPG、PNG格式，文件大小不超过2MB</div>
+              <div class="custom-file-input-wrapper">
+                <input class="form-control" type="file" id="avatarUpload" @change="handleAvatarChange" accept="image/*">
+                <div class="form-text upload-hint">支持JPG、PNG格式，文件大小不超过2MB</div>
+              </div>
             </div>
             
             <div v-if="avatarError" class="alert alert-danger" role="alert">
@@ -100,9 +103,9 @@
               {{ avatarSuccess }}
             </div>
             
-            <button class="btn btn-primary" @click="uploadAvatar" :disabled="!avatarFile || avatarLoading">
+            <button class="btn btn-primary btn-lg upload-btn" @click="uploadAvatar" :disabled="!avatarFile || avatarLoading">
               <span v-if="avatarLoading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-              上传头像
+              <i class="bi bi-cloud-upload me-2"></i>上传头像
             </button>
           </div>
         </div>
@@ -133,42 +136,54 @@
             </div>
             
             <!-- 帖子管理列表 -->
-            <div v-else class="table-responsive">
-              <table class="table table-hover">
-                <thead>
-                  <tr>
-                    <th scope="col" style="width: 40%">标题</th>
-                    <th scope="col">发布时间</th>
-                    <th scope="col">阅读量</th>
-                    <th scope="col">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="post in userPosts" :key="post.postId">
-                    <td class="text-truncate" style="max-width: 200px;" :title="post.postTitle">{{ post.postTitle }}</td>
-                    <td>{{ formatDate(post.createTime) }}</td>
-                    <td>{{ post.postViews || 0 }}</td>
-                    <td>
-                      <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" class="btn btn-outline-primary" @click="editPost(post.postId)">
-                          <i class="bi bi-pencil"></i> 编辑
-                        </button>
-                        <button type="button" class="btn btn-outline-danger" @click="confirmDeletePost(post)">
-                          <i class="bi bi-trash"></i> 删除
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div v-else class="posts-container">
+              <div class="table-wrapper">
+                <table class="table table-hover custom-table">
+                  <thead>
+                    <tr>
+                      <th scope="col" style="width: 40%">标题</th>
+                      <th scope="col">发布时间</th>
+                      <th scope="col">阅读量</th>
+                      <th scope="col" class="action-column">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="post in userPosts" :key="post.postId" class="post-item">
+                      <td class="text-truncate post-title" style="max-width: 200px;" :title="post.postTitle">
+                        <i class="bi bi-file-earmark-text me-2"></i>{{ post.postTitle }}
+                      </td>
+                      <td>
+                        <span class="date-badge">
+                          <i class="bi bi-calendar-date me-1"></i>{{ formatDate(post.createTime) }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="views-badge">
+                          <i class="bi bi-eye me-1"></i>{{ post.postViews || 0 }}
+                        </span>
+                      </td>
+                      <td>
+                        <div class="action-buttons" role="group">
+                          <button type="button" class="btn btn-action btn-edit" @click="editPost(post.postId)" title="编辑帖子">
+                            <i class="bi bi-pencil-square"></i>
+                          </button>
+                          <button type="button" class="btn btn-action btn-delete" @click="confirmDeletePost(post)" title="删除帖子">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
               
               <!-- 分页导航 -->
               <nav v-if="userPosts.length > 0" aria-label="帖子分页" class="my-4">
-                <ul class="pagination justify-content-center">
+                <ul class="pagination pagination-custom justify-content-center">
                   <!-- 上一页按钮 -->
                   <li class="page-item" :class="{ disabled: postsCurrentPage === 1 }">
                     <a class="page-link" href="#" @click.prevent="changePostsPage(postsCurrentPage - 1)" aria-label="上一页">
-                      <span aria-hidden="true">&laquo;</span>
+                      <i class="bi bi-chevron-left"></i>
                     </a>
                   </li>
                   
@@ -183,7 +198,7 @@
                   <!-- 下一页按钮 -->
                   <li class="page-item" :class="{ disabled: postsCurrentPage === postsTotalPages }">
                     <a class="page-link" href="#" @click.prevent="changePostsPage(postsCurrentPage + 1)" aria-label="下一页">
-                      <span aria-hidden="true">&raquo;</span>
+                      <i class="bi bi-chevron-right"></i>
                     </a>
                   </li>
                 </ul>
@@ -485,7 +500,6 @@ export default {
     const changePostsPage = (page) => {
       if (page < 1 || page > postsTotalPages.value) return;
       postsCurrentPage.value = page;
-      console.log('访问页面' + postsCurrentPage.value);
       loadUserPosts();
     };
     
@@ -685,90 +699,427 @@ export default {
 
 <style scoped>
 .settings-card {
-  margin-top: 20px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: box-shadow 0.3s ease;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .settings-card:hover {
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
 }
 
-.nav-tabs .nav-link {
+.card-header {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  color: #1f2937;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.card-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(45deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 100%);
+  pointer-events: none;
+}
+
+.card-title {
+  font-size: 1.5rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #111827;
+}
+
+.card-title i {
+  font-size: 1.6rem;
+  color: #4f46e5;
+}
+
+.card-body {
+  padding: 2rem;
+}
+
+.nav-pills {
+  margin-bottom: 2rem;
+}
+
+.nav-pills .nav-link {
   color: #495057;
   font-weight: 500;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin: 0 0.5rem;
+  transition: all 0.3s ease;
 }
 
-.nav-tabs .nav-link.active {
-  color: #007bff;
-  font-weight: 600;
+.nav-pills .nav-link:hover {
+  background-color: rgba(0, 123, 255, 0.1);
+  transform: translateY(-2px);
 }
 
-.nav-tabs .nav-link i {
-  margin-right: 5px;
+.nav-pills .nav-link.active {
+  color: #fff;
+  background: linear-gradient(45deg, #007bff, #5a9de0);
+  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.nav-pills .nav-link i {
+  margin-right: 8px;
+  font-size: 1.1rem;
+}
+
+.card-content-wrapper {
+  background-color: #f8f9fa;
+  border-radius: 10px;
+  min-height: 350px;
 }
 
 .avatar-preview {
-  width: 150px;
-  height: 150px;
+  width: 180px;
+  height: 180px;
   margin: 0 auto;
   overflow: hidden;
   border-radius: 50%;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+  border: 5px solid #fff;
+  position: relative;
 }
 
-.avatar-preview img {
+.user-avatar {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 50%;
+  transition: transform 0.5s ease;
 }
 
-.table-responsive {
-  max-height: 400px;
-  overflow-y: auto;
+.user-avatar:hover {
+  transform: scale(1.05);
 }
 
-.btn-group .btn {
-  transition: all 0.2s;
+.upload-container {
+  max-width: 500px;
+  margin: 0 auto;
 }
 
-.btn-group .btn:hover {
+.custom-file-input-wrapper {
+  position: relative;
+  padding: 1.5rem;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.upload-hint {
+  margin-top: 0.5rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.upload-btn {
+  padding: 0.75rem 2rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  margin-top: 0.5rem;
+  border-radius: 50px;
+  box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
+}
+
+.upload-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0, 123, 255, 0.4);
+}
+
+.upload-btn:active:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.posts-container {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  padding: 1.5rem;
+  overflow: hidden;
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  /* 自定义滚动条 */
+  scrollbar-width: thin;
+  scrollbar-color: #adb5bd #f8f9fa;
+}
+
+.table-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+  background: #f8f9fa;
+  border-radius: 10px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+  background-color: #adb5bd;
+  border-radius: 10px;
+  border: 2px solid #f8f9fa;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background-color: #6c757d;
+}
+
+.custom-table {
+  margin-bottom: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 650px; /* 确保表格不会过度压缩 */
+  width: 100%;
+}
+
+.custom-table thead {
+  background-color: #f8f9fa;
+}
+
+.custom-table th {
+  font-weight: 600;
+  color: #495057;
+  padding: 1rem;
+  border-top: none;
+  border-bottom: 2px solid #e9ecef;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.7px;
+}
+
+.custom-table td {
+  padding: 1rem;
+  vertical-align: middle;
+  border-top: none;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.post-item {
+  transition: all 0.2s ease;
+}
+
+.post-item:hover {
+  background-color: #f8f9fa;
   transform: translateY(-2px);
+}
+
+.post-title {
+  font-weight: 500;
+  color: #343a40;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 250px;
+  display: inline-block;
+}
+
+.date-badge, .views-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.7rem;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  background-color: #f8f9fa;
+  color: #6c757d;
+}
+
+.date-badge {
+  background-color: #e7f5ff;
+  color: #1971c2;
+}
+
+.views-badge {
+  background-color: #fff9db;
+  color: #e67700;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.btn-action {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #fff;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.btn-action:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-edit {
+  background-color: #4dabf7;
+  border-color: #4dabf7;
+}
+
+.btn-edit:hover {
+  background-color: #339af0;
+  border-color: #339af0;
+}
+
+.btn-delete {
+  background-color: #ff8787;
+  border-color: #ff8787;
+}
+
+.btn-delete:hover {
+  background-color: #fa5252;
+  border-color: #fa5252;
+}
+
+.action-column {
+  width: 100px;
+  min-width: 100px;
+  text-align: center;
+}
+
+.pagination-custom {
+  margin-top: 2rem;
+}
+
+.pagination-custom .page-link {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  margin: 0 5px;
+  color: #4a69bb;
+  background-color: #fff;
+  border: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.pagination-custom .page-link:hover {
+  background-color: #e7f5ff;
+  color: #1864ab;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-custom .page-item.active .page-link {
+  background: linear-gradient(45deg, #4a69bb, #6c5b7b);
+  color: #fff;
+  box-shadow: 0 4px 8px rgba(74, 105, 187, 0.3);
+}
+
+.pagination-custom .page-item.disabled .page-link {
+  color: #adb5bd;
+  pointer-events: none;
+  background-color: #f1f3f5;
+  box-shadow: none;
 }
 
 /* 动画效果 */
 .tab-pane {
-  animation: fadeIn 0.3s ease-in-out;
+  animation: fadeIn 0.4s ease-in-out;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* 分页样式 */
-.pagination {
-  margin-bottom: 0;
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .card-body {
+    padding: 1.5rem;
+  }
+  
+  .nav-pills .nav-link {
+    margin: 0 0.25rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
+  }
+  
+  .avatar-preview {
+    width: 150px;
+    height: 150px;
+  }
+  
+  .btn-group .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .custom-table {
+    min-width: 550px;
+  }
+  
+  .posts-container {
+    padding: 1rem;
+  }
+  
+  .post-title {
+    max-width: 150px;
+  }
+  
+  .date-badge, .views-badge {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  .action-column {
+    width: 80px;
+    min-width: 80px;
+  }
 }
 
-.pagination .page-link {
-  padding: 0.375rem 0.75rem;
-  color: #6c757d;
-  background-color: #fff;
-  border: 1px solid #dee2e6;
-}
-
-.pagination .page-item.active .page-link {
-  z-index: 3;
-  color: #fff;
-  background-color: #007bff;
-  border-color: #007bff;
-}
-
-.pagination .page-item.disabled .page-link {
-  color: #6c757d;
-  pointer-events: none;
-  background-color: #fff;
-  border-color: #dee2e6;
+@media (max-width: 576px) {
+  .custom-table {
+    min-width: 450px;
+  }
+  
+  .post-title {
+    max-width: 120px;
+  }
+  
+  .card-body {
+    padding: 1rem;
+  }
+  
+  .btn-action {
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
+  }
+  
+  .action-column {
+    width: 70px;
+    min-width: 70px;
+  }
 }
 </style>

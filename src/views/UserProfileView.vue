@@ -2,12 +2,14 @@
     <Content>
       <div class="row">
         <div class="col-4">
+          <!-- 这边可以修改邮箱、地址等信息 -->
           <UserProfileInfo v-on:follow="follow" v-on:unfollow="unfollow" v-bind:user="user"/>
           <!-- <UserProfileWrite v-on:post_a_post="post_a_post" /> -->
-          <UserProfileSettings v-bind:user="user" />
+          <!-- <UserProfileSettings v-bind:user="user" /> -->
+          <UserBasicInfoEdit v-bind:user="user" />
         </div>
         <div class="col-8">
-          <UserProfilePosts
+          <!-- <UserProfilePosts
             v-bind:posts="posts"
             v-bind:loading="loading"
             v-bind:error="error"
@@ -16,7 +18,8 @@
             v-bind:totalPages="totalPages"
             v-bind:displayedPages="displayedPages"
             @change-page="changePage"
-          />
+          /> -->
+          <UserProfileSettings v-bind:user="user" />
         </div>
       </div>
     </Content>
@@ -24,9 +27,10 @@
 
   <script>
   // @ is an alias to /src
+  import UserBasicInfoEdit from '@/components/UserBasicInfoEdit.vue'
   import Content from '@/components/ContentBase';
   import UserProfileInfo from '@/components/UserProfileInfo'
-  import UserProfilePosts from '@/components/UserProfilePosts'
+  // import UserProfilePosts from '@/components/UserProfilePosts'
   // import UserProfileWrite from '@/components/UserProfileWrite';
   import UserProfileSettings from '@/components/UserProfileSettings.vue';
   import { reactive, ref, computed, onMounted, watch } from 'vue';
@@ -38,9 +42,8 @@
     components:{
       Content,
       UserProfileInfo,
-      UserProfilePosts,
-      // UserProfileWrite,
-      UserProfileSettings
+      UserProfileSettings,
+      UserBasicInfoEdit
     },
     setup(){
       // 获取store和router
@@ -63,8 +66,8 @@
       const user = reactive({
         username: store.state.user.username,
         id: store.state.user.id,
-        followCount: 0,
-        is_followed: false,
+        followCount: store.state.user.followerCount,
+        followingCount: store.state.user.followingCount,
         photo: store.state.user.photo || '@/assets/mylogo.png'
       });
 

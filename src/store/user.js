@@ -13,6 +13,9 @@ export default {
     status: "",  // 1 表示没有被封禁，0表示被封禁
     vip: 0,
     email:"",
+    followingCount:0,
+    followerCount:0,
+    // is_followed:false
   },
   getters: {
   },
@@ -25,8 +28,11 @@ export default {
       state.is_login = user.is_login;
       state.status = user.status
       state.vip = user.vip,
-      state.email = user.email
-
+      state.email = user.email,
+      state.followerCount = user.followerCount,
+      state.followingCount = user.followingCount,
+      state.bio = user.bio,
+      state.location = user.location
     },
     updateToken(state, token) {
       state.token = token;
@@ -41,6 +47,10 @@ export default {
       state.status = "";
       state.vip = 0;
       state.email = "";
+      state.followerCount = 0;
+      state.followingCount = 0;
+      state.bio = "";
+      state.location = "";
     }
   },
   actions: {  // 修改state的函数写在actions里边
@@ -85,6 +95,7 @@ export default {
           Authorization: "Bearer " + context.state.token,
         },
         success(resp) {
+          console.log(resp);
           if (resp.error_msg === "success") {
             context.commit("updateUser", {
               ...resp,

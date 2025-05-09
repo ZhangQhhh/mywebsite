@@ -16,6 +16,9 @@ import AdminControlView from '@/views/AdminControlView.vue'
 import ChatView from '@/views/ChatView.vue'
 import store from '../store/index'
 import UserDesc from '@/components/UserDesc.vue'
+import FollowerOrFollowingView from '@/views/FollowerOrFollowingView.vue'
+
+import ChatTest from '@/components/testTemp/ChatTest.vue'
 
 const routes = [
   {
@@ -27,11 +30,26 @@ const routes = [
     }
   },
   {
+    path: '/t',
+    name: 'chat-test',
+    component: ChatTest
+  },
+  {
     path: '/userlist',
     name: 'userlist',
     component: UserListView,
     meta: {
       requestAuth: true,
+    }
+  },
+  {
+    path: '/follow/:userId',
+    name: 'FollowerOrFollowing',
+    component: FollowerOrFollowingView,
+    props: true,
+    meta: {
+      requestAuth: true,
+      title:'粉丝与关注'
     }
   },
   {
@@ -176,7 +194,7 @@ router.beforeEach(async (to, from, next) => {
       // VIP检查 - 修改为兼容多种格式的判断
       if (to.meta.requireVIP) {
         // 检查 is_vip 值，兼容字符串 '1' 和布尔值 true
-        const isVip = store.state.user.is_vip === '1';
+        const isVip = store.state.user.vip === '1';
         
         if (!isVip) {
           showAlert("该功能仅对VIP会员开放！请升级为VIP会员后再访问。");
