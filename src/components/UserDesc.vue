@@ -434,10 +434,20 @@ export default {
     };
 
     // 发送消息
-    const sendMessage = () => {
-      UToast({ message: '该功能暂未上线，敬请期待', type: 'warning', })
-      // 跳转到消息页或显示消息对话框
-      // router.push(`/message?userId=${user.id}`);
+    const sendMessage = async () => {
+      try {
+        // 使用localStorage存储用户ID，然后跳转到消息页面
+        localStorage.setItem('pendingChatUserId', user.id);
+        
+        // 跳转到私信页面
+        router.push('/pmessage');
+        
+        // 不再尝试直接访问Vue应用实例
+        UToast({ message: '正在跳转到私信页面...', type: 'info', duration: 2000 });
+      } catch (err) {
+        console.error('跳转到私信页面失败:', err);
+        UToast({ message: '跳转到私信页面失败，请稍后重试', type: 'error' });
+      }
     };
 
     // 跳转到帖子详情页

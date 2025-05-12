@@ -17,7 +17,7 @@ import ChatView from '@/views/ChatView.vue'
 import store from '../store/index'
 import UserDesc from '@/components/UserDesc.vue'
 import FollowerOrFollowingView from '@/views/FollowerOrFollowingView.vue'
-
+import PMessageView from '@/views/PMessageView.vue'
 import ChatTest from '@/components/testTemp/ChatTest.vue'
 
 const routes = [
@@ -25,6 +25,23 @@ const routes = [
     path: '/',
     name: 'home',
     component: HomeView,
+    meta: {
+      requestAuth: true,
+    }
+  },
+  {
+    path: '/pmessage',
+    name: 'pmessage',
+    component: PMessageView,
+    meta: {
+      requestAuth: true,
+    }
+  },
+  {
+    path: '/pmessage/:chatId',
+    name: 'pmessage-chat',
+    component: PMessageView,
+    props: true,  // 将路由参数作为 props 传递给组件
     meta: {
       requestAuth: true,
     }
@@ -209,6 +226,7 @@ router.beforeEach(async (to, from, next) => {
 })
 
 export default router
+
 
 
 

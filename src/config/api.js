@@ -1,4 +1,6 @@
 export const API_BASE_URL = process.env.VUE_APP_API_BASE_URL;
+export const WS_URL = process.env.VUE_APP_WS_URL;
+export const WS_API_BASE_URL = process.env.NODE_ENV === 'production' ? '/websocket' : 'http://localhost:3000/websocket';
 
 // 定义所有API端点
 export const API_ENDPOINTS = {
@@ -39,8 +41,17 @@ export const API_ENDPOINTS = {
     BASE: `${API_BASE_URL}/follow`,
     FOLLOWERS: `${API_BASE_URL}/follow/select/followers`,
     FOLLOWINGS: `${API_BASE_URL}/follow/select/followings`,
+  },
+  MESSAGE:{
+    BASE: `${WS_API_BASE_URL}/messages`,
+    LIST: `${WS_API_BASE_URL}/messages/list`,
+    DETAIL: `${WS_API_BASE_URL}/messages/history`,
+    SEND: `${WS_API_BASE_URL}/messages/send`,
+    READ: `${WS_API_BASE_URL}/messages/read`,
+    DELETE: `${WS_API_BASE_URL}/messages/delete`,
   }
 };
+
 
 
 
