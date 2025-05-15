@@ -4,11 +4,26 @@
       <!-- 左侧聊天列表 -->
       <div class="chat-sidebar">
         <div class="sidebar-header">
-          <h2>私信列表</h2>
-          <!-- 使用调试函数 -->
-          <el-button type="primary" size="small" @click="createNewChat">
-            <i class="bi bi-plus-circle"></i> 新建会话
-          </el-button>
+          <div class="header-title">
+            <h2>私信列表</h2>
+            <span class="connection-status" :class="{ connected: wsConnected }">
+              {{ wsConnected ? '已连接' : '未连接' }}
+            </span>
+          </div>
+          <div>
+            <el-button type="primary" size="small" @click="createNewChat">
+              <i class="bi bi-plus-circle"></i> 新建会话
+            </el-button>
+            <el-button type="info" size="small" @click="loadChatList" title="刷新聊天列表">
+              <i class="bi bi-arrow-clockwise"></i>
+            </el-button>
+            <el-button v-if="!wsConnected" type="warning" size="small" @click="resetWebSocketConnection" title="重置连接">
+              <i class="bi bi-wifi"></i> 重连
+            </el-button>
+            <el-button type="info" size="small" @click="debugWebSocket" title="检查WebSocket">
+              <i class="bi bi-bug"></i>
+            </el-button>
+          </div>
         </div>
         <div class="chat-list">
           <div v-for="chat in chatList" :key="chat.id" class="chat-item"
@@ -16,6 +31,8 @@
             <div class="chat-avatar">
               <img :src="chat.avatar" :alt="chat.username">
               <span class="online-status" :class="{ 'is-online': chat.isOnline }"></span>
+              <!-- 添加未读消息提示 -->
+              <span v-if="chat.unreadCount > 0" class="unread-badge">{{ chat.unreadCount > 99 ? '99+' : chat.unreadCount }}</span>
             </div>
             <div class="chat-info">
               <div class="chat-header">
@@ -37,8 +54,17 @@
               <img :src="currentChat.avatar" :alt="currentChat.username">
               <div class="user-details">
                 <h3>{{ currentChat.username }}</h3>
-                <span class="status">{{ currentChat.isOnline ? '在线' : '离线' }}</span>
+                <span class="status">{{ currentChat.isOnline ? '在线' : '迷失态' }}</span>
               </div>
+            </div>
+            <!-- 添加刷新按钮 -->
+            <div class="header-actions">
+              <el-button type="info" size="small" @click="refreshCurrentChat" title="刷新消息">
+                <i class="bi bi-arrow-clockwise"></i> 刷新
+              </el-button>
+              <!-- <el-button type="primary" size="small" @click="testSound" title="测试提示音">
+                <i class="bi bi-volume-up"></i> 测试提示音
+              </el-button> -->
             </div>
           </div>
 
@@ -159,19 +185,20 @@
 </template>
 
 <script>
-/* eslint-disable no-unused-vars */
+/* eslint-disable */
 import { ref, onMounted, nextTick, watch, onUnmounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import Content from '@/components/ContentBase';
 import PMessage from '@/components/PMessage.vue'
 import { getChatList, getChatMessages, markAsRead, MessageSent } from '@/api/PM'
-import { initWebSocket, closeWebSocket, onMessageType, offMessageType, getConnectionStatus } from '@/api/websocketService'
 import emoji from '@/assets/emoji.ts'
 import dayjs from 'dayjs'
 import store from '@/store'
 import { showAlert } from '@/utils'
-// /* eslint-enable no-unused-vars */
 import { ElMessage } from 'element-plus'
+import websocketService from '@/api/websocketService';
+import { onMessageType } from '@/api/websocketService';
+
 export default {
   name: 'PMessageView',
   components: {
@@ -189,63 +216,251 @@ export default {
     const emojiList = ref([])
     const loading = ref(false)
     const sending = ref(false)
-    const activeEmojiTab = ref(0) // 默认选中第一个表情包标签页
-    const wsConnected = ref(false);
-    const refreshInterval = ref(null);
+    const activeEmojiTab = ref(0)
+    const wsConnected = ref(false)
+    const refreshInterval = ref(null)
+    const socket = ref(null)
+    const chatRefreshInterval = ref(null) // 添加这一行来定义变量
+    
+    // 添加重连相关变量
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    const reconnectDelay = 3000; // 3秒
 
     // 新增状态变量
-    const showNewChatDialog = ref(false);
+    const showNewChatDialog = ref(false)
     const newChatForm = ref({
       userId: '',
       message: ''
-    });
-    const creating = ref(false);
+    })
+    const creating = ref(false)
 
-    // 处理WebSocket连接状态变化
-    const handleConnectionChange = (data) => {
-      wsConnected.value = data.status === 'connected';
-
-      // 如果连接断开，尝试重新连接
-      if (data.status === 'disconnected' || data.status === 'error') {
-        console.warn('WebSocket连接断开，尝试重新连接');
-        // 重连由websocketService内部处理
+    // 获取WebSocket URL
+    const getWsUrl = () => {
+      // 从 localStorage 获取 token
+      const token = localStorage.getItem('token') || store.state.user?.token;
+      if (!token) {
+        // console.error('获取WebSocket URL失败: 未找到用户令牌');
+        return null;
       }
-
-      // 如果连接成功，并且当前有选中的聊天，刷新消息
-      if (data.status === 'connected' && currentChat.value) {
-
-        loadMessages(currentChat.value.id);
-      }
-    };
-
-    // 检查WebSocket连接状态并在必要时重连
-    const checkWebSocketConnection = () => {
-      if (!getConnectionStatus()) {
-        
-        initWebSocket();
-        return false;
-      }
-      return true;
-    };
-
-    // 改进的处理新消息函数
-    const handleNewMessage = (data) => {
-      console.log('处理新消息:', data);
       
-      if (!data || !data.message) {
-        console.error('消息数据格式不正确:', data);
+      // 检查令牌格式是否正确
+      if (!token.includes('.')) {
+        // console.error('获取WebSocket URL失败: 令牌格式不正确');
+        return null;
+      }
+      
+      // 根据环境构建 WebSocket URL
+      if (process.env.NODE_ENV === 'production') {
+        // 生产环境
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        return `${wsProtocol}//${host}/websocket/${token}`;
+      } else {
+        // 开发环境 - 确保添加 token
+        return `ws://localhost:3000/websocket/${token}`;
+      }
+    };
+
+    // 初始化WebSocket连接
+    const initWebSocket = () => {
+      // console.log('开始初始化WebSocket连接');
+      
+      // 如果已经有连接，先关闭
+      if (socket.value && (socket.value.readyState === WebSocket.OPEN || socket.value.readyState === WebSocket.CONNECTING)) {
+        // console.log('已有WebSocket连接，状态:', socket.value.readyState);
         return;
       }
       
-      const { message, senderId } = data;
-      const currentUserId = String(store.state.user.id);
+      try {
+        const wsUrl = getWsUrl();
+        if (!wsUrl) {
+          console.error('初始化WebSocket失败: 无法获取WebSocket URL');
+          return;
+        }
+        
+        // console.log('正在连接WebSocket:', wsUrl);
+        socket.value = new WebSocket(wsUrl);
+        
+        // 连接打开事件
+        socket.value.onopen = (event) => {
+          // console.log('WebSocket连接已建立', event);
+          wsConnected.value = true;
+          
+          // 可选：发送一个测试消息，验证连接是否正常工作
+          // try {
+          //   const testMessage = {
+          //     type: 'ping',
+          //     timestamp: new Date().toISOString()
+          //   };
+          //   socket.value.send(JSON.stringify(testMessage));
+          //   // console.log('发送了ping测试消息');
+          // } catch (error) {
+          //   console.error('发送测试消息失败:', error);
+          // }
+        };
+        
+        // 接收消息事件 - 添加更详细的日志
+        socket.value.onmessage = (event) => {
+          // console.log('收到WebSocket消息');
+          
+          // 播放提示音
+          playMessageSound();
+          
+          try {
+            const data = JSON.parse(event.data);
+            // console.log('解析后的WebSocket消息:', data);
+            
+            // 处理不同类型的消息
+            if (data.type === 'message') {
+              // console.log('收到聊天消息:', data);
+              
+              // 获取当前用户ID和发送者ID
+              const currentUserId = store.state.user.id;
+              const senderId = data.senderId;
+              const senderIdStr = String(senderId);
+              const currentUserIdStr = String(currentUserId);
+              
+              // console.log('当前用户ID:', currentUserIdStr, '发送者ID:', senderIdStr);
+              
+              // 判断消息是否是自己发送的
+              const isMine = senderIdStr === currentUserIdStr;
+              
+              // 如果不是自己发送的消息，更新聊天列表中的未读计数
+              if (!isMine) {
+                // 查找发送者在聊天列表中的项
+                const senderChat = chatList.value.find(chat => String(chat.id) === senderIdStr);
+                if (senderChat) {
+                  // 检查是否是当前聊天
+                  const isCurrentChat = currentChat.value && String(currentChat.value.id) === senderIdStr;
+                  
+                  if (isCurrentChat) {
+                    // 如果是当前聊天，立即进行局部刷新
+                    // console.log('收到当前聊天的消息，立即刷新');
+                    refreshCurrentChat();
+                    
+                    // 标记为已读
+                    markAsRead(senderIdStr).catch(error => {
+                      console.error('标记为已读失败:', error);
+                    });
+                  } else {
+                    // 如果不是当前聊天，增加未读计数
+                    senderChat.unreadCount = (senderChat.unreadCount || 0) + 1;
+                    // 更新最后一条消息和时间
+                    senderChat.lastMessage = data.content || '[新消息]';
+                    senderChat.lastMessageTime = new Date();
+                  }
+                } else {
+                  // 如果发送者不在聊天列表中，刷新整个列表
+                  loadChatList();
+                }
+              } else {
+                // 如果是自己发送的消息，检查是否需要刷新当前聊天
+                const receiverId = data.receiverId;
+                const receiverIdStr = String(receiverId);
+                
+                // 如果当前正在与接收者聊天，刷新聊天界面
+                if (currentChat.value && String(currentChat.value.id) === receiverIdStr) {
+                  // console.log('收到自己发送给当前聊天对象的消息确认，立即刷新');
+                  refreshCurrentChat();
+                }
+              }
+            } else if (data.type === 'unreadCount') {
+              // console.log('收到未读消息计数:', data.count);
+              // 刷新聊天列表以获取最新的未读计数
+              loadChatList();
+            } else if (data.type === 'confirm') {
+              // console.log('收到消息确认:', data);
+              
+              // 如果是当前聊天的消息确认，刷新聊天界面
+              if (currentChat.value && data.receiverId && String(data.receiverId) === String(currentChat.value.id)) {
+                // console.log('收到当前聊天的消息确认，立即刷新');
+                refreshCurrentChat();
+              }
+            } else {
+              // 其他类型消息处理...
+              // console.log('收到其他类型消息:', data);
+            }
+          } catch (error) {
+            // console.error('解析WebSocket消息失败:', error);
+            // console.error('原始消息内容:', event.data);
+          }
+        };
+        
+        // 连接关闭事件
+        socket.value.onclose = (event) => {
+          // console.log('WebSocket连接已关闭:', event);
+          // console.log('关闭代码:', event.code);
+          // console.log('关闭原因:', event.reason);
+          // console.log('是否干净关闭:', event.wasClean);
+          
+          wsConnected.value = false;
+          
+          // 尝试重连
+          setTimeout(() => {
+            // console.log('尝试重新连接WebSocket');
+            initWebSocket();
+          }, 3000);
+        };
+        
+        // 连接错误事件
+        socket.value.onerror = (error) => {
+          // console.error('WebSocket连接错误:', error);
+          wsConnected.value = false;
+        };
+        
+        return true;
+      } catch (error) {
+        wsConnected.value = false;
+        return false;
+      }
+    };
+
+    // 关闭WebSocket连接
+    const closeWebSocket = () => {
+      if (socket.value) {
+        socket.value.close()
+        socket.value = null
+      }
+      wsConnected.value = false
+    }
+
+    // 发送WebSocket消息
+    const sendWebSocketMessage = (data) => {
+      if (!socket.value || socket.value.readyState !== WebSocket.OPEN) {
+        return false
+      }
+      
+      try {
+        socket.value.send(JSON.stringify(data))
+        return true
+      } catch (error) {
+        return false
+      }
+    }
+
+    // 优化处理新消息的函数
+    const handleNewMessage = (data) => {
+      
+      // 检查消息格式
+      if (!data || (!data.message && !data.content)) {
+        // console.error('消息数据格式不正确:', data);
+        return;
+      }
+      
+      // 适应不同的消息格式
+      const message = data.message || data;
+      const senderId = message.senderId || data.senderId;
       const senderIdStr = String(senderId);
+      const messageContent = message.content || '';
+      const messageType = message.type || 'text';
+      
+      // 确定消息是否是自己发送的
+      const currentUserId = String(store.state.user.id);
       const isMine = senderIdStr === currentUserId;
-
-      // 检查消息是否包含表情
-      let messageType = message.type || 'text';
-      let messageContent = message.content;
-
+      
+      // console.log('消息详情 - 发送者ID:', senderIdStr, '当前用户ID:', currentUserId, '是否自己发送:', isMine);
+      
       // 创建新消息对象
       const newMessage = {
         id: message.id || `msg-${Date.now()}`,
@@ -257,63 +472,124 @@ export default {
         type: messageType,
         isRead: message.isRead
       };
-
+      
       // 检查是否是当前聊天
-      // 修改判断逻辑：如果是自己发送的消息，检查接收者是否是当前聊天对象
-      // 如果是接收到的消息，检查发送者是否是当前聊天对象
+      const receiverId = message.receiverId || data.receiverId;
       const isCurrentChat = currentChat.value && (
-        (isMine && message.receiverId && String(currentChat.value.id) === String(message.receiverId)) || 
+        (isMine && receiverId && String(currentChat.value.id) === String(receiverId)) || 
         (!isMine && String(currentChat.value.id) === senderIdStr)
       );
-
-      console.log('是否当前聊天:', isCurrentChat, '当前聊天ID:', currentChat.value?.id, '发送者ID:', senderIdStr);
-
+      
+      // console.log('是否当前聊天:', isCurrentChat, '当前聊天ID:', currentChat.value?.id);
+      
       if (isCurrentChat) {
         // 添加到消息列表
         messages.value.push(newMessage);
-
+        
         // 更新会话缓存
         try {
           sessionStorage.setItem(`chat_${currentChat.value.id}`, JSON.stringify(messages.value));
         } catch (error) {
-          console.error('更新会话缓存失败:', error);
+          // console.error('更新会话缓存失败:', error);
         }
-
+        
         // 滚动到底部
         nextTick(() => {
           scrollToBottom();
         });
-
+        
         // 如果是收到的消息，标记为已读
         if (!isMine) {
           markAsRead(currentChat.value.id).catch(error => {
-            console.error('标记为已读失败:', error);
+            // console.error('标记为已读失败:', error);
           });
         }
       } else {
         // 不是当前聊天，更新聊天列表
         loadChatList();
-
+        
         // 如果是收到的消息，显示通知
         if (!isMine) {
+          // 查找发送者信息
           const sender = chatList.value.find(c => String(c.id) === senderIdStr);
           const senderName = sender?.username || '有人';
-
+          
           // 显示系统通知
-          if ('Notification' in window && Notification.permission === 'granted') {
-            const notification = new Notification(`来自 ${senderName} 的新消息`, {
-              body: messageType === 'emoji' ? '[表情]' : messageContent,
-              icon: sender?.avatar || require('@/assets/mylogo.png')
-            });
-
-            notification.onclick = () => {
-              window.focus();
-              if (sender) {
-                selectChat(sender);
+          if ('Notification' in window) {
+            if (Notification.permission === 'granted') {
+              try {
+                const notificationOptions = {
+                  body: messageType === 'emoji' ? '[表情]' : messageContent,
+                  icon: sender?.avatar || require('@/assets/mylogo.png'),
+                  tag: `chat-${senderIdStr}`, // 使用标签避免重复通知
+                  requireInteraction: true // 通知保持显示直到用户交互
+                };
+                
+                const notification = new Notification(`来自 ${senderName} 的新消息`, notificationOptions);
+                
+                // 确保通知点击事件正常工作
+                notification.onclick = () => {
+                  window.focus();
+                  if (sender) {
+                    selectChat(sender);
+                  }
+                };
+                
+                // console.log('系统通知已创建:', notification);
+              } catch (error) {
+                // console.error('创建系统通知失败:', error);
               }
-            };
+            } else if (Notification.permission !== 'denied') {
+              // 如果权限状态是 'default'，请求权限
+              Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                  // 权限获取后重新尝试显示通知
+                  const notification = new Notification(`来自 ${senderName} 的新消息`, {
+                    body: messageType === 'emoji' ? '[表情]' : messageContent,
+                    icon: sender?.avatar || require('@/assets/mylogo.png')
+                  });
+                  
+                  notification.onclick = () => {
+                    window.focus();
+                    if (sender) {
+                      selectChat(sender);
+                    }
+                  };
+                }
+              });
+            }
           }
+          
+          // 播放提示音
+          playMessageSound();
         }
+      }
+    };
+
+    // 检查WebSocket连接状态
+    const checkWebSocketConnection = () => {
+      // console.log('检查WebSocket连接状态');
+      
+      if (!socket.value) {
+        // console.error('WebSocket对象不存在');
+        return false;
+      }
+      
+      const stateMap = {
+        0: 'CONNECTING',
+        1: 'OPEN',
+        2: 'CLOSING',
+        3: 'CLOSED'
+      };
+      
+      // console.log('WebSocket状态:', socket.value.readyState, stateMap[socket.value.readyState]);
+      
+      if (socket.value.readyState === WebSocket.OPEN) {
+        // console.log('WebSocket连接正常');
+        return true;
+      } else {
+        console.error('WebSocket未连接');
+        return false;
       }
     };
 
@@ -379,15 +655,21 @@ export default {
                 lastMessage: chat.last_message || '',
                 lastMessageTime: chat.last_time ? new Date(chat.last_time) : new Date(),
                 isOnline: chat.isOnline || false,
-                unreadCount: chat.unread_count || 0
+                unreadCount: chat.unread_count || 0  // 确保正确获取未读消息计数
               };
             });
 
-          // 如果当前有选中的聊天，更新其头像
+          // 如果当前有选中的聊天，更新其头像和未读计数
           if (currentChat.value) {
             const updatedChat = chatList.value.find(chat => chat.id === currentChat.value.id);
             if (updatedChat) {
               currentChat.value.avatar = updatedChat.avatar;
+              // 如果当前聊天有未读消息，标记为已读
+              if (updatedChat.unreadCount > 0) {
+                markAsRead(currentChat.value.id).catch(error => {
+                  console.error('标记为已读失败:', error);
+                });
+              }
             }
           }
         } else {
@@ -489,6 +771,17 @@ export default {
         chat.avatar = require('@/assets/mylogo.png');
       }
 
+      // 如果有未读消息，标记为已读
+      if (chat.unreadCount > 0) {
+        try {
+          await markAsRead(chat.id);
+          // 更新本地未读计数
+          chat.unreadCount = 0;
+        } catch (error) {
+          console.error('标记为已读失败:', error);
+        }
+      }
+
       currentChat.value = chat;
       await loadMessages(chat.id);
       scrollToBottom();
@@ -500,6 +793,19 @@ export default {
         '',
         `/${currentRoute}/${chat.id}`
       );
+
+      // 设置自动刷新当前聊天
+      if (chatRefreshInterval.value) {
+        clearInterval(chatRefreshInterval.value);
+      }
+      
+      // 每15秒自动刷新一次当前聊天
+      chatRefreshInterval.value = setInterval(() => {
+        if (currentChat.value && currentChat.value.id === chat.id) {
+          // console.log('自动刷新当前聊天');
+          refreshCurrentChat();
+        }
+      }, 15000);
     }
 
     // 检查消息是否包含表情
@@ -560,16 +866,20 @@ export default {
       };
     };
 
-    // 发送消息
+    // 优化发送消息函数
     const sendMessage = async () => {
       if (!messageInput.value.trim() || sending.value || !currentChat.value) {
         return;
       }
 
       // 检查WebSocket连接状态
-      if (!checkWebSocketConnection()) {
-        showAlert('网络连接不稳定，请稍后重试');
-        return;
+      if (!socket.value || socket.value.readyState !== WebSocket.OPEN) {
+        console.error('WebSocket未连接，尝试重新连接');
+        const connected = initWebSocket();
+        if (!connected) {
+          showAlert('网络连接不稳定，请稍后重试');
+          return;
+        }
       }
 
       const content = messageInput.value.trim();
@@ -582,8 +892,7 @@ export default {
       try {
         // 检查消息是否包含表情
         const messageData = checkMessageForEmojis(content);
-      
-
+        
         // 先添加到本地消息列表（乐观UI更新）
         const newMessage = {
           id: tempId,
@@ -600,42 +909,25 @@ export default {
         messages.value.push(newMessage);
         scrollToBottom();
 
-        
-
-        // 发送到服务器 - 始终发送原始内容，让服务器处理
-        const response = await MessageSent(currentChat.value.id, content);
-       
-
-        // 更新消息状态
-        const index = messages.value.findIndex(m => m.id === tempId);
-        if (index !== -1) {
-          if (response && response.data && response.data.message) {
-            // 用服务器返回的消息ID替换临时ID，但保留我们的类型和内容处理
-            messages.value[index].id = response.data.message.id;
-            messages.value[index].sending = false;
-
-            // 保存到会话缓存
-            if (currentChat.value) {
-              try {
-                sessionStorage.setItem(`chat_${currentChat.value.id}`, JSON.stringify(messages.value));
-              } catch (error) {
-                console.error('更新会话缓存失败:', error);
-              }
-            }
-          } else {
-            // 仅标记为已发送
-            messages.value[index].sending = false;
-          }
-        }
-
-        // 更新聊天列表中的最后一条消息
-        const chatIndex = chatList.value.findIndex(c => c.id === currentChat.value.id);
-        if (chatIndex !== -1) {
-          chatList.value[chatIndex].lastMessage = content;
-          chatList.value[chatIndex].lastMessageTime = new Date();
+        // 通过WebSocket发送消息
+        if (socket.value && socket.value.readyState === WebSocket.OPEN) {
+          // 构造符合后端期望的消息格式
+          const wsMessage = {
+            receiverId: parseInt(currentChat.value.id),
+            content: content
+          };
+          
+          socket.value.send(JSON.stringify(wsMessage));
+          
+          // 不立即标记为已发送，等待服务器确认
+        } else {
+          // 如果WebSocket不可用，回退到HTTP API
+          const response = await MessageSent(currentChat.value.id, content);
+          
+          // 更新消息状态
+          updateMessageStatus(tempId, response);
         }
       } catch (error) {
-        console.error('发送消息失败:', error);
         showAlert('发送消息失败，请稍后重试');
 
         // 标记消息为发送失败
@@ -647,7 +939,31 @@ export default {
       } finally {
         sending.value = false;
       }
-    }
+    };
+
+    // 添加一个函数来更新消息状态
+    const updateMessageStatus = (tempId, response) => {
+      const index = messages.value.findIndex(m => m.id === tempId);
+      if (index !== -1) {
+        if (response && response.data && response.data.message) {
+          // 用服务器返回的消息ID替换临时ID
+          messages.value[index].id = response.data.message.id;
+          messages.value[index].sending = false;
+
+          // 保存到会话缓存
+          if (currentChat.value) {
+            try {
+              sessionStorage.setItem(`chat_${currentChat.value.id}`, JSON.stringify(messages.value));
+            } catch (error) {
+              console.error('更新会话缓存失败:', error);
+            }
+          }
+        } else {
+          // 仅标记为已发送
+          messages.value[index].sending = false;
+        }
+      }
+    };
 
     const scrollToBottom = () => {
       nextTick(() => {
@@ -693,131 +1009,117 @@ export default {
     });
 
     // 组件挂载时初始化数据
-    onMounted(async () => {
-      // 定义一个内部函数来处理创建新会话
-      const handlePendingChatUser = (userId) => {
-        if (!userId) return;
+    const setupWebSocketHandlers = () => {
+      // console.log('【设置】注册WebSocket消息处理函数');
+      
+      // 注册消息处理函数
+      const messageHandler = (data) => {
+        // console.log('【WebSocket服务】收到message类型消息:', data);
         
-        console.log(`创建与用户 ${userId} 的新会话`);
+        // 获取当前用户ID
+        const currentUserId = store.state.user.id;
         
-        // 检查是否已经有与该用户的会话
-        const existingChat = chatList.value.find(chat => String(chat.id) === String(userId));
+        // 检查是否是自己发送的消息
+        const isMine = String(data.senderId) === String(currentUserId);
+        // console.log('【WebSocket服务】是否是自己发送的消息:', isMine);
         
-        if (existingChat) {
-          // 如果已经有会话，直接选择该会话
-          console.log('找到现有会话，直接选择');
-          selectChat(existingChat);
-          return;
+        // 如果不是自己发送的，播放提示音
+        if (!isMine) {
+          // console.log('【WebSocket服务】收到他人消息，播放提示音');
+          playMessageSound();
         }
         
-        // 如果没有现有会话，创建新会话
-        newChatForm.value = {
-          userId: userId,
-          message: ''
-        };
-        
-        // 显示新建会话对话框，让用户输入第一条消息
-        showNewChatDialog.value = true;
+        // 其他处理逻辑...
       };
       
-      // 检查是否有待处理的聊天用户ID
-      const pendingUserId = localStorage.getItem('pendingChatUserId');
-      if (pendingUserId) {
-        // 清除localStorage中的ID
-        localStorage.removeItem('pendingChatUserId');
-        // 处理待处理的用户ID
-        handlePendingChatUser(pendingUserId);
-      }
+      // 注册到websocketService
+      const removeHandler = onMessageType('message', messageHandler);
       
-      // 将createNewChatWithUser方法暴露给全局，以便其他组件可以调用
-      if (typeof window !== 'undefined') {
-        // 确保Vue应用实例存在
-        if (window.__vue_app__) {
-          window.__vue_app__.config.globalProperties.$messageView = {
-            createNewChatWithUser: handlePendingChatUser
-          };
-        }
-      }
-      
-      // 初始化WebSocket
-      initWebSocket();
-      
-      // 添加调试日志
-      console.log('WebSocket初始化完成');
-      
-      // 注册WebSocket消息处理函数
-      console.log('注册WebSocket消息处理函数');
-      
-      onMessageType('connection', (data) => {
-        console.log('收到连接状态消息:', data);
-        handleConnectionChange(data);
-      });
-      
-      onMessageType('message', (data) => {
-        console.log('收到message类型消息:', data);
-        handleNewMessage(data);
-      });
-      
-      onMessageType('unreadCount', (data) => {
-        console.log('收到未读消息计数:', data);
-        loadChatList();
-      });
-      
-      // 添加错误处理
-      onMessageType('error', (data) => {
-        console.error('WebSocket错误:', data);
-        // 尝试重新连接
-        setTimeout(() => {
-          console.log('尝试重新连接WebSocket');
-          initWebSocket();
-        }, 3000);
-      });
-      
-      // 设置定时检查WebSocket连接状态
-      const checkConnectionInterval = setInterval(() => {
-        if (!getConnectionStatus()) {
-          console.log('WebSocket连接已断开，尝试重新连接');
-          initWebSocket();
-        }
-      }, 5000);
-      
-      // 在组件卸载时清除定时器
+      // 在组件卸载时移除处理函数
       onUnmounted(() => {
-        clearInterval(checkConnectionInterval);
-        // 其他清理代码...
+        // console.log('【设置】移除WebSocket消息处理函数');
+        removeHandler();
       });
+    };
+
+    // 添加一个标志，表示页面是否刚刚加载
+    const isPageJustLoaded = ref(true);
+
+    onMounted(async () => {
+      // 标记页面刚刚加载
+      isPageJustLoaded.value = true;
+      
+      // 3秒后重置标志
+      setTimeout(() => {
+        isPageJustLoaded.value = false;
+      }, 3000);
+      
+      // 请求通知权限
+      if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+        Notification.requestPermission();
+      }
+      
+      // 预加载音频
+      try {
+        const audio = new Audio(require('@/assets/sound/message.mp3'));
+        audio.load();
+        // console.log('音频文件预加载成功');
+      } catch (error) {
+        console.error('音频文件预加载失败:', error);
+      }
       
       // 加载聊天列表
+      // console.log('加载聊天列表');
       await loadChatList();
+      
+      // 初始化WebSocket连接
+      // console.log('初始化WebSocket连接');
+      initWebSocket();
+      
+      // 设置WebSocket消息处理函数
+      setupWebSocketHandlers();
       
       // 检查路由参数
       if (route.params.chatId) {
+        // console.log('从路由参数加载聊天:', route.params.chatId);
         const chat = chatList.value.find(c => String(c.id) === String(route.params.chatId));
         if (chat) {
           selectChat(chat);
         }
       }
       
-      // 设置定时刷新
+      // 设置定时检查WebSocket连接状态
       refreshInterval.value = setInterval(() => {
-        if (currentChat.value) {
-          checkWebSocketConnection();
+        if (!socket.value || socket.value.readyState !== WebSocket.OPEN) {
+          if (reconnectAttempts < maxReconnectAttempts) {
+            // console.log('WebSocket未连接或已关闭，尝试重新连接');
+            initWebSocket();
+          } else {
+            // console.log('已达到最大重连次数，不再自动重连');
+          }
         }
-      }, 10000);
+      }, 30000); // 30秒检查一次
     });
 
     // 组件卸载时清理
     onUnmounted(() => {
+      // console.log('PMessageView组件已卸载');
+      
       if (refreshInterval.value) {
         clearInterval(refreshInterval.value);
         refreshInterval.value = null;
       }
       
-      offMessageType('connection', handleConnectionChange);
-      offMessageType('message', handleNewMessage);
-      offMessageType('unreadCount');
-      offMessageType('error');
-      closeWebSocket();
+      // 关闭WebSocket连接
+      if (socket.value) {
+        socket.value.close();
+        socket.value = null;
+      }
+
+      if (chatRefreshInterval.value) {
+        clearInterval(chatRefreshInterval.value);
+        chatRefreshInterval.value = null;
+      }
     });
 
     const userAvatar = computed(() => {
@@ -921,6 +1223,260 @@ export default {
       }
     };
 
+    // 重连WebSocket
+    const reconnectWebSocket = () => {
+      console.log('手动重连WebSocket');
+      websocketService.closeWebSocket();
+      setTimeout(() => {
+        websocketService.initWebSocket(getWsUrl());
+      }, 500);
+    };
+
+    // 添加一个测试函数，用于手动发送测试消息
+    const sendTestMessage = () => {
+      if (!socket.value || socket.value.readyState !== WebSocket.OPEN) {
+        console.error('WebSocket未连接，无法发送测试消息');
+        return;
+      }
+      
+      try {
+        const testMessage = {
+          type: 'test',
+          content: 'This is a test message',
+          timestamp: new Date().toISOString()
+        };
+        
+        console.log('发送测试消息:', testMessage);
+        socket.value.send(JSON.stringify(testMessage));
+        console.log('测试消息已发送');
+      } catch (error) {
+        console.error('发送测试消息失败:', error);
+      }
+    };
+
+    // 添加一个函数，用于检查WebSocket是否正常工作
+    const checkWebSocketHealth = () => {
+      console.log('检查WebSocket健康状态');
+      
+      if (!socket.value) {
+        console.error('WebSocket对象不存在');
+        return false;
+      }
+      
+      console.log('WebSocket状态:', socket.value.readyState);
+      console.log('WebSocket连接状态映射:', {
+        0: 'CONNECTING',
+        1: 'OPEN',
+        2: 'CLOSING',
+        3: 'CLOSED'
+      }[socket.value.readyState]);
+      
+      if (socket.value.readyState === WebSocket.OPEN) {
+        console.log('WebSocket连接正常');
+        
+        // 检查事件处理函数是否已设置
+        console.log('onmessage处理函数已设置:', !!socket.value.onmessage);
+        console.log('onclose处理函数已设置:', !!socket.value.onclose);
+        console.log('onerror处理函数已设置:', !!socket.value.onerror);
+        
+        return true;
+      } else {
+        console.error('WebSocket连接异常');
+        return false;
+      }
+    };
+
+    // 处理调试命令
+    const handleDebugCommand = (command) => {
+      console.log('执行调试命令:', command);
+      
+      switch (command) {
+        case 'checkHealth':
+          checkWebSocketHealth();
+          break;
+        case 'sendTest':
+          sendTestMessage();
+          break;
+        case 'reconnect':
+          closeWebSocket();
+          setTimeout(() => {
+            initWebSocket();
+          }, 500);
+          break;
+        default:
+          console.error('未知调试命令:', command);
+      }
+    };
+
+    // 添加消息提示音功能
+    // 检查音频文件是否存在
+    const checkAudioFile = () => {
+      try {
+        const audioPath = require('@/assets/sound/message.mp3');
+        console.log('音频文件路径:', audioPath);
+        return true;
+      } catch (error) {
+        console.error('音频文件不存在:', error);
+        return false;
+      }
+    };
+
+    // 创建一个全局音频对象，避免每次都创建新的
+    const messageAudio = ref(null);
+
+    // 在组件挂载时初始化音频对象
+    onMounted(async () => {
+      // 初始化音频对象，但完全禁止自动播放
+      try {
+        // 创建音频对象但设置音量为0并禁用自动播放
+        messageAudio.value = new Audio();
+        messageAudio.value.src = require('@/assets/sound/message.mp3');
+        messageAudio.value.volume = 0; // 设置音量为0
+        messageAudio.value.autoplay = false; // 明确禁用自动播放
+        messageAudio.value.muted = true; // 静音
+        messageAudio.value.load();
+        
+        // 只使用预加载属性，不调用play()方法
+        messageAudio.value.preload = 'auto';
+      } catch (error) {
+        console.error('初始化音频对象失败:', error);
+      }
+      
+      // 先加载聊天列表，再初始化WebSocket
+      // 这样可以避免在加载过程中收到消息触发声音
+      await loadChatList();
+      
+      // 延迟初始化WebSocket，避免立即收到消息
+      setTimeout(() => {
+        initWebSocket();
+        setupWebSocketHandlers();
+      }, 1000);
+      
+      // 检查路由参数
+      if (route.params.chatId) {
+        const chat = chatList.value.find(c => String(c.id) === String(route.params.chatId));
+        if (chat) {
+          selectChat(chat);
+        }
+      }
+    });
+
+    // 修改播放消息提示音函数
+    const playMessageSound = () => {
+      // 如果页面刚刚加载，不播放声音
+      if (isPageJustLoaded.value) {
+        console.log('页面刚加载，跳过提示音');
+        return;
+      }
+      
+      try {
+        const audio = new Audio(require('@/assets/sound/message.mp3'));
+        audio.volume = 0.5;
+        audio.play()
+          .then()
+          .catch(error => {
+            console.error('消息提示音播放失败:', error);
+          });
+      } catch (error) {
+        console.error('播放音频失败:', error);
+      }
+    };
+
+    // 添加重置WebSocket连接的函数
+    const resetWebSocketConnection = () => {
+      // console.log('手动重置WebSocket连接');
+      
+      // 关闭现有连接
+      if (socket.value) {
+        socket.value.close();
+        socket.value = null;
+      }
+      
+      // 重置重连计数
+      reconnectAttempts = 0;
+      wsConnected.value = false;
+      
+      // 延迟1秒后重新连接
+      setTimeout(() => {
+        initWebSocket();
+      }, 1000);
+    };
+
+    // 添加调试WebSocket的函数
+    const debugWebSocket = () => {
+      // console.log('调试WebSocket连接');
+      
+      // 检查WebSocket状态
+      const status = checkWebSocketConnection();
+      ElMessage.info(`您的连接状态: ${status ? '正常' : '异常'}`);
+      
+      if (!status) {
+        // 提示用户
+        ElMessage.warning('连接异常，尝试重新连接');
+        // 尝试重新连接
+        resetWebSocketConnection();
+      }
+    };
+
+    // 添加一个局部刷新函数
+    const refreshCurrentChat = async () => {
+      if (!currentChat.value) return false;
+      
+      // console.log('刷新当前聊天:', currentChat.value.id);
+      
+      try {
+        // 1. 刷新聊天列表
+        await loadChatList();
+        
+        // 2. 重新加载当前聊天的消息
+        const chatId = currentChat.value.id;
+        
+        // 从服务器获取最新消息
+        const response = await getChatMessages(chatId);
+        
+        // 检查响应格式并处理数据
+        if (response && response.success && response.data) {
+          // 根据后端返回的实际结构获取消息数组
+          const messageData = response.data.records || [];
+          
+          if (Array.isArray(messageData) && messageData.length > 0) {
+            // 保存当前滚动位置
+            const scrollPosition = messagesContainer.value ? messagesContainer.value.scrollTop : 0;
+            const isAtBottom = messagesContainer.value ? 
+              (messagesContainer.value.scrollHeight - messagesContainer.value.scrollTop <= messagesContainer.value.clientHeight + 50) : 
+              true;
+            
+            messages.value = formatMessages(messageData);
+            
+            // 更新缓存
+            sessionStorage.setItem(`chat_${chatId}`, JSON.stringify(messages.value));
+            // console.log('成功更新消息列表，消息数量:', messages.value.length);
+            
+            // 恢复滚动位置或滚动到底部
+            nextTick(() => {
+              if (messagesContainer.value) {
+                if (isAtBottom) {
+                  scrollToBottom();
+                } else {
+                  messagesContainer.value.scrollTop = scrollPosition;
+                }
+              }
+            });
+          }
+        }
+        
+        return true;
+      } catch (error) {
+        console.error('局部刷新失败:', error);
+        return false;
+      }
+    };
+
+    const testSound = () => {
+      // console.log('测试提示音');
+      playMessageSound();
+    };
+
     return {
       currentChat,
       messages,
@@ -946,7 +1502,19 @@ export default {
       creating,
       handleUserSelect,
       createNewChat,
-      submitNewChat
+      submitNewChat,
+      reconnectWebSocket,
+      sendTestMessage,
+      checkWebSocketHealth,
+      handleDebugCommand,
+      playMessageSound,
+      resetWebSocketConnection,
+      debugWebSocket,
+      updateMessageStatus,
+      checkWebSocketConnection,
+      refreshCurrentChat,
+      testSound,
+      loadChatList
     };
   }
 }
@@ -1019,6 +1587,28 @@ export default {
   border: 2px solid #e5e7eb;
 }
 
+/* 未读消息提示样式 */
+.unread-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background-color: #f56c6c;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid #ffffff;
+  transform: translate(25%, 25%);
+  z-index: 2;
+}
+
+/* 调整在线状态指示器的位置，避免与未读消息提示重叠 */
 .online-status {
   position: absolute;
   bottom: 0;
@@ -1028,6 +1618,8 @@ export default {
   border-radius: 50%;
   background: #9ca3af;
   border: 2px solid #ffffff;
+  transform: translate(-50%, -50%);
+  z-index: 1;
 }
 
 .online-status.is-online {
@@ -1280,6 +1872,63 @@ export default {
 
 .new-chat-form {
   padding: 10px;
+}
+
+/* 添加到现有样式中 */
+.connection-status {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 8px;
+  background-color: #f56c6c;
+  color: white;
+}
+
+.connection-status.connected {
+  background-color: #67c23a;
+}
+
+/* 消息发送状态样式 */
+.message-status {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 2px;
+}
+
+.message-failed {
+  color: #f56c6c;
+}
+
+/* 消息重试按钮 */
+.retry-btn {
+  font-size: 12px;
+  color: #409eff;
+  cursor: pointer;
+  margin-left: 5px;
+}
+
+.retry-btn:hover {
+  text-decoration: underline;
+}
+
+/* 添加样式 */
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.chat-user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 @media (max-width: 768px) {

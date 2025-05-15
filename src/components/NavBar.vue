@@ -42,9 +42,9 @@
               </span>
             </router-link>
           </li>
-          <!-- <li class="nav-item">
-            <router-link class="nav-link" :to="{ name: 'rigister' }">注册</router-link>
-          </li> -->
+          <li class="nav-item">
+            <router-link class="nav-link" :to="{ name: 'pmessage' }">私信列表</router-link>
+          </li> 
 
 
           <li class="nav-item dropdown">
