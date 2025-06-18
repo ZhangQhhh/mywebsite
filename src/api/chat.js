@@ -16,7 +16,7 @@ const CHAT_API_URL = `${API_BASE_URL}/chat`;
  */
 export function MyDeepseek(question, net = true, onChunk, systemPrompt = "") {
   // const apiKey = import.meta.env.VITE_LLM_API_KEY;
-  const apiKey = "sk-78096874f3c6740aa8e6b92caea0a3d4e38ff798dd8e9e64f5b3d4ef0bdacd81";
+  const apiKey = "这里写你的大模型api";
   const apiUrl = "https://api.qnaigc.com/v1/chat/completions";
   const model = net ? "deepseek-v3?search" : "deepseek-v3";
   
